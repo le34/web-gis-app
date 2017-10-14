@@ -7,7 +7,7 @@
           <v-icon>close</v-icon>
         </v-btn>
         <v-tooltip left>
-          <v-btn fab dark small color="green" slot="activator" @click.stop="createUser()">
+          <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
             <v-icon>add</v-icon>
           </v-btn>
           <span>Opret ny</span>
@@ -134,7 +134,7 @@ export default {
     focus () {
       this.$nextTick(() => this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus())
     },
-    createUser () {
+    create () {
       this.dialog = true
       this.$nextTick(() => this.$refs.email.$el.getElementsByTagName('input')[0].focus())
     },

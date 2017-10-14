@@ -8,6 +8,7 @@ export const plugins = [
   service('/users'),
   service('/roles'),
   service('/clients'),
+  service('/cvr'),
   service('/authManagement'),
   auth({
     userService: 'users'
