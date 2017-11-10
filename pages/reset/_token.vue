@@ -1,7 +1,8 @@
 <template>
   <v-app>
-    <v-toolbar app fixed dark class="primary">
-      <v-toolbar-title>LE34 - Kort</v-toolbar-title>
+    <v-toolbar app fixed prominent dark color="secondary">
+      <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
+      <v-toolbar-title>{{title}}</v-toolbar-title>
     </v-toolbar>
     <main>
       <v-content>
@@ -32,7 +33,7 @@
 export default {
   head () {
     return {
-      title: 'Reset Password'
+      title: this.title
     }
   },
   data () {
@@ -40,7 +41,8 @@ export default {
       snackbar: false,
       password: null,
       message: null,
-      valid: false
+      valid: false,
+      title: 'Reset Password'
     }
   },
   methods: {

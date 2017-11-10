@@ -10,50 +10,50 @@
           <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
             <v-icon>add</v-icon>
           </v-btn>
-          <span>Opret ny</span>
+          <span>Create</span>
         </v-tooltip>
         <v-tooltip left>
           <v-btn fab dark small color="red" slot="activator" @click.stop="dialogRemove = true">
             <v-icon>delete</v-icon>
           </v-btn>
-          <span>Slet valgte</span>
+          <span>Delete</span>
         </v-tooltip>
       </v-speed-dial>
     </v-fab-transition>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
-      <img src="/icon.png" height="63" />
-      <v-toolbar-title>Opdragsgivere</v-toolbar-title>
+      <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
+      <v-toolbar-title>{{title}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon v-if="!showSearch && $vuetify.breakpoint.xsOnly" @click.stop="showSearch=!showSearch;focus()">
         <v-icon>search</v-icon>
       </v-btn>
-      <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
+      <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="clients" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="company" :search="search" hide-actions>
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
         <td @click.stop="edit(props.item)" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="editClient(props.item)" class="text-xs-left select">{{ props.item.cvrno }}</td>
+        <td @click.stop="editClient(props.item)" class="text-xs-right select">{{ props.item.cvrno }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Opret ny opdragsgiver</div>
+            <div class="headline">Create new company</div>
           </v-card-title>
           <v-card-text>
-            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete required item-text="Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn" :items="cvr" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
+            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete required item-text="display" :items="items" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
             <v-text-field readonly v-model="cvrNummer" label="CVR"></v-text-field>            
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="primary" flat @click.native="clear()">Fortryd</v-btn>
-            <v-btn type="submit" color="primary" @click.stop="save()">Gem</v-btn>
+            <v-btn color="primary" flat @click.native="dialog=false">Cancel</v-btn>
+            <v-btn type="submit" color="primary" @click.stop="save()">Save</v-btn>
           </v-card-actions>
         </v-card>
       </v-form>
@@ -61,23 +61,30 @@
     <v-dialog v-model="dialogRemove" lazy absolute>
       <v-card>
         <v-card-title>
-          <div class="headline">Slet valgte opdragsgivere</div>
+          <div class="headline">Delete company</div>
         </v-card-title>
-        <v-card-text>Er du sikker på at du vil slette valgte opdragsgivere?</v-card-text>
+        <v-card-text>Delete selected company?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Fortryd</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="remove()">Slet</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Cancel</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="remove()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-content>
 </template>
 <script>
-import { mapGetters, mapMutations } from 'vuex'
+import { mapGetters } from 'vuex'
 export default {
+  layout: 'company',
+  head () {
+    return {
+      title: this.title
+    }
+  },
   data () {
     return {
+      title: 'Company',
       valid: false,
       fab: false,
       showSearch: false,
@@ -94,16 +101,17 @@ export default {
         }
       ],
       form: {},
+      items: [],
       loading: false,
       selectedCVR: null,
-      nameRules: [() => this.selectedCVR !== null || 'Du skal vælge en virksomhed fra listen'],
+      nameRules: [() => this.selectedCVR !== null || 'Select a company from the list'],
       dialog: false,
       dialogRemove: false,
       search: '',
       selected: [],
       headers: [
         {
-          text: 'Navn',
+          text: 'Name',
           align: 'left',
           sortable: true,
           value: 'name'
@@ -113,9 +121,6 @@ export default {
     }
   },
   methods: {
-    clear () {
-      this.$store.commit('cvr/clearAll')
-    },
     focus () {
       this.$nextTick(() => this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus())
     },
@@ -125,8 +130,8 @@ export default {
     },
     remove () {
       this.dialogRemove = true
-      this.selected.forEach(user => {
-        this.$store.dispatch('users/remove', user.id).then(res => {
+      this.selected.forEach(item => {
+        this.$store.dispatch('company/remove', item.id).then(res => {
           this.dialogRemove = false
         }).catch(err => {
           console.log(err)
@@ -135,7 +140,7 @@ export default {
     },
     save () {
       if (this.valid) {
-        this.$store.dispatch('clients/create', {
+        this.$store.dispatch('company/create', {
           data: {
             name: this.selectedCVR.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn,
             cvrno: this.selectedCVR.Vrvirksomhed.cvrNummer
@@ -151,29 +156,26 @@ export default {
           this.message = err
         })
       }
+    },
+    edit (item) {
+      this.$router.push({ name: 'admin-company-id', params: { id: item.id } })
     }
   },
   computed: {
-    ...mapMutations('cvr', {
-      clearCVR: 'clearAll'
-    }),
-    ...mapGetters('cvr', {
-      cvr: 'list'
-    }),
     ...mapGetters('users', {
       users: 'list'
     }),
-    ...mapGetters('clients', {
-      clientsRaw: 'list'
+    ...mapGetters('company', {
+      companyRaw: 'list'
     }),
-    clients () {
-      return this.clientsRaw.map(client => {
-        return { id: client.id, ...client.data }
-      })
-    },
     ...mapGetters('roles', {
       roles: 'list'
     }),
+    company () {
+      return this.companyRaw.map(item => {
+        return { id: item.id, ...item.data }
+      })
+    },
     drawer: {
       get () {
         return this.$store.state.drawer
@@ -193,7 +195,6 @@ export default {
         if (value) {
           console.log(value)
           this.loading = true
-          this.$store.commit('cvr/clearAll')
           this.$store.dispatch('cvr/find', {
             query: {
               $select: [
@@ -205,17 +206,13 @@ export default {
                 $query: value || ''
               }
             }
-          }).then(() => {
+          }).then((res) => {
+            this.items = res.map(item => {
+              return { display: '(' + item.Vrvirksomhed.cvrNummer + ') ' + item.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn, ...item }
+            })
             this.loading = false
           })
         }
-        /*
-        this.$axios.$get('/cvr/' + value).then(data => {
-          this.cvr = data.hits.hits
-        }).catch(err => {
-          console.log(err)
-        })
-        */
       }
     }
   },
@@ -223,7 +220,7 @@ export default {
   },
   mounted () {
     this.$store.dispatch('users/find')
-    this.$store.dispatch('clients/find', { query: { data: { type: 'opdragsgiver' } } })
+    this.$store.dispatch('company/find')
     this.$store.dispatch('roles/find')
   }
 }

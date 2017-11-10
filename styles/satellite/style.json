@@ -1,0 +1,160 @@
+{
+  "version": 8,
+  "name": "Satelite",
+  "glyphs": "{urlPrefix}/api/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "wmts": {
+      "type": "raster",
+      "tiles": [
+        "https://a.kortforsyningen.kms.dk/orto_foraar_webm?login=qgisdk&password=qgisdk&request=GetTile&version=1.0.0&service=WMTS&Layer=orto_foraar&style=default&format=image/jpeg&TileMatrixSet=GoogleMapsCompatible&TileMatrix={z}&TileRow={y}&TileCol={x}",
+        "https://b.kortforsyningen.kms.dk/orto_foraar_webm?login=qgisdk&password=qgisdk&request=GetTile&version=1.0.0&service=WMTS&Layer=orto_foraar&style=default&format=image/jpeg&TileMatrixSet=GoogleMapsCompatible&TileMatrix={z}&TileRow={y}&TileCol={x}",
+        "https://c.kortforsyningen.kms.dk/orto_foraar_webm?login=qgisdk&password=qgisdk&request=GetTile&version=1.0.0&service=WMTS&Layer=orto_foraar&style=default&format=image/jpeg&TileMatrixSet=GoogleMapsCompatible&TileMatrix={z}&TileRow={y}&TileCol={x}"
+      ],
+      "tileSize": 256,
+      "minzoom": 0,
+      "maxzoom": 20,
+      "attribution": "FOT ortofoto <a href='http://www.kortforsyningen.dk' target='_blank'>@ Geodatastyrelsen</a>"
+    },
+    "wms": {
+      "type": "raster",
+      "tiles": [
+        "http://a.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
+        "http://b.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
+        "http://c.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar"
+      ],
+      "tileSize": 256,
+      "minzoom": 20,
+      "maxzoom": 22,
+      "attribution": "FOT ortofoto <a href='http://www.kortforsyningen.dk' target='_blank'>@ Geodatastyrelsen</a>"
+    },
+    "centroide": {
+      "type": "vector",
+      "url": "{urlPrefix}/api/tiles/centroide"
+    },
+    "matrikelskel": {
+      "type": "vector",
+      "url": "{urlPrefix}/api/tiles/matrikelskel"
+    },
+    "optagetvej": {
+      "type": "vector",
+      "url": "{urlPrefix}/api/tiles/optagetvej"
+    },
+    "skelpunkt": {
+      "type": "vector",
+      "url": "{urlPrefix}/api/tiles/skelpunkt"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "rgb(4,7,14)"
+      }
+    },
+    {
+      "id": "wmts",
+      "type": "raster",
+      "source": "wmts"
+    },
+    {
+      "id": "wms",
+      "type": "raster",
+      "source": "wms"
+    },
+    {
+      "id": "matrikel_skel",
+      "type": "line",
+      "source": "matrikelskel",
+      "source-layer": "matrikelskelgeojson",
+      "layout": {
+        "visibility": "none"
+      },
+      "paint": {
+        "line-width": 2,
+        "line-color": "hsl(0, 0%, 78%)"
+      }
+    },
+    {
+      "id": "matrikel_skelpunkt",
+      "type": "circle",
+      "source": "skelpunkt",
+      "source-layer": "skelpunktgeojson",
+      "minzoom": 16,
+      "maxzoom": 24,
+      "layout": {
+        "visibility": "none"
+      },
+      "paint": {
+        "circle-stroke-color": "hsl(0, 0%, 78%)",
+        "circle-stroke-width": 2,
+        "circle-opacity": 0
+      }
+    },
+    {
+      "id": "matrikel_centroide",
+      "type": "symbol",
+      "source": "centroide",
+      "source-layer": "centroidegeojson",
+      "minzoom": 16,
+      "layout": {
+        "text-field": "{matrikelnummer}",
+        "text-font": [
+          "Matrikel"
+        ],
+        "text-justify": "center",
+        "visibility": "none"
+      },
+      "paint": {
+        "text-color": "hsl(0, 0%, 78%)",
+        "text-halo-color": "#212121",
+        "text-halo-width": 0.5,
+        "text-halo-blur": 0
+      }
+    },
+    {
+      "id": "matrikel_optagetvej",
+      "type": "line",
+      "source": "optagetvej",
+      "source-layer": "optagetvejgeojson",
+      "layout": {
+        "visibility": "none"
+      },
+      "paint": {
+        "line-dasharray": [
+          5,
+          5
+        ],
+        "line-color": "hsl(0, 0%, 78%)"
+      }
+    },
+    {
+      "id": "matrikel_optagetvejbredde",
+      "type": "symbol",
+      "source": "optagetvej",
+      "source-layer": "optagetvejgeojson",
+      "minzoom": 17,
+      "layout": {
+        "visibility": "none",
+        "text-field": "{vejbredde}",
+        "text-font": [
+          "Open Sans Regular"
+        ],
+        "text-rotation-alignment": "map",
+        "symbol-placement": "line",
+        "text-letter-spacing": 0,
+        "text-anchor": "bottom",
+        "text-offset": [
+          0,
+          -0.2
+        ]
+      },
+      "paint": {
+        "text-color": "hsl(0, 0%, 78%)",
+        "text-halo-color": "#212121",
+        "text-halo-width": 0.5,
+        "text-halo-blur": 0
+      }
+    }
+  ]
+}

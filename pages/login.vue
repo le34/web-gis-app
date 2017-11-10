@@ -1,9 +1,10 @@
 <template>
   <v-app>
-    <v-toolbar app fixed dark class="primary">
-      <v-toolbar-title>LE34 - Kort</v-toolbar-title>
+    <v-toolbar app fixed prominent dark color="secondary">
+      <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
+      <v-toolbar-title>{{title}}</v-toolbar-title>
     </v-toolbar>
-    <main class="main">
+    <main>
       <v-content>
         <v-container>
           <v-form v-model="valid" ref="form" @submit.prevent>
@@ -13,18 +14,19 @@
               <v-card-text>
                 <v-text-field label="Email" type="email" v-model="email" required></v-text-field>
                 <v-text-field label="Password" type="password" v-model="password" required></v-text-field>
+                <p>Don't have an account? Contact <a href="mailto:rut@le34.dk?Subject=Signup">rut@le34.dk</a></p>
               </v-card-text>
               <v-card-actions>
                 <v-spacer/>
-                <v-btn type="submit" color="primary" @click="submit">Login</v-btn>
-                <v-btn flat color="primary" @click="sendResetPwd">Glemt password</v-btn>
+                <v-btn type="submit" color="primary" @click="submit">Log In</v-btn>
+                <v-btn flat color="primary" @click="sendResetPwd">Forgot password?</v-btn>
               </v-card-actions>
             </v-card>
           </v-form>
         </v-container>
       </v-content>
     </main>
-    <v-snackbar color="warning" v-model="snackbar">
+    <v-snackbar color="error" v-model="snackbar">
       {{ message }}
       <v-btn dark flat @click.native="snackbar = false">Luk</v-btn>
     </v-snackbar>
@@ -47,7 +49,8 @@ export default {
       password: null,
       error: null,
       valid: false,
-      message: null
+      message: null,
+      title: 'Login'
     }
   },
   methods: {
@@ -59,9 +62,10 @@ export default {
 
       try {
         await this.authenticate({ strategy: 'local', email, password })
-        this.$router.back()
+        this.$router.replace(this.$store.state.last)
       } catch (e) {
-        this.error = e.message
+        this.snackbar = true
+        this.message = e.message
         throw e
       }
     },

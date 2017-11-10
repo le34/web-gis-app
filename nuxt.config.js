@@ -1,3 +1,5 @@
+/* eslint no-new: 0 */
+const webpack = require('webpack')
 module.exports = {
   /*
   ** Headers of the page
@@ -24,8 +26,7 @@ module.exports = {
       optimize: false,
       meta: {
         viewport: false,
-        ogTitle: false,
-        ogDescription: false
+        name: 'Survey'
       }
     }],
     ['@nuxtjs/axios', {
@@ -43,10 +44,16 @@ module.exports = {
   ** Add axios globally
   */
   plugins: [
-    '~/plugins/vuetify.js'
+    '~/plugins/vuetify.js',
+    '~/plugins/feathers-client.js'
   ],
   build: {
     vendor: ['axios', 'vuetify'],
+    plugins: [
+      new webpack.EnvironmentPlugin({
+        FEATHERS: 'http://localhost:3030'
+      })
+    ],
     /*
     ** Run ESLINT on save
     */
@@ -58,6 +65,9 @@ module.exports = {
           loader: 'eslint-loader',
           exclude: /(node_modules)/
         })
+      }
+      if (!ctx.dev && ctx.isClient) {
+        config.module.noParse = /(mapbox-gl)\.js$/
       }
     }
   }
