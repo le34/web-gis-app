@@ -87,7 +87,8 @@
         "https://b.tiles.mapbox.com/v4/mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoicnVuZXR2aWx1bSIsImEiOiJkeUg2WVkwIn0.yoMmv3etOc40RXkPsebXSg",
         "https://c.tiles.mapbox.com/v4/mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoicnVuZXR2aWx1bSIsImEiOiJkeUg2WVkwIn0.yoMmv3etOc40RXkPsebXSg"
       ],
-      "type": "vector"
+      "type": "vector",
+      "attribution": "© <a href='http://www.le34.dk'>LE34</a> © <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> © <a href='http://www.kortforsyningen.dk'>Geodatastyrelsen</a>"
     },
     "bygning": {
       "url": "{urlPrefix}/api/tiles/bygning",

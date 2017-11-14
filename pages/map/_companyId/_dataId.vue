@@ -5,20 +5,29 @@
       {{ message }}
       <v-btn dark flat @click.native="snackbar = false">Luk</v-btn>
     </v-snackbar>
-    <v-dialog max-width="500px" scrollable v-model="dialog" :fullscreen="$vuetify.breakpoint.xsOnly">
+    <v-dialog max-width="500px" scrollable v-model="dialog" :fullscreen="$vuetify.breakpoint.xsOnly" lazy>
       <v-card>
-        <v-card-title class="headline ">Info</v-card-title>
+        <v-toolbar card>
+          <v-toolbar-title>{{feature ? feature.name : ''}}</v-toolbar-title>
+          <v-spacer/>
+          <v-btn flat icon @click.native="dialog = false"><v-icon>close</v-icon></v-btn>
+        </v-toolbar>
         <v-card-text class="pa-0">
           <v-data-table style="height: 300px;" v-bind:headers="headers" :items="items" hide-actions class="elevation-1">
             <template slot="items" scope="props">
               <td>{{ props.item.name }}</td>
-              <td>{{ props.item.value }}</td>
+              <td>{{ props.item.name==='feature' && feature.name? feature.name : props.item.value }}</td>
             </template>
           </v-data-table>
         </v-card-text>
         <v-card-actions>
-          <v-spacer/>
-          <v-btn color="primary" flat @click.native="dialog = false">Close</v-btn>
+          <v-layout>
+            <v-flex>
+              <div class="text-xs-center pt-2">
+                <v-pagination v-model="pagination" :length="features.length"></v-pagination>
+              </div>
+            </v-flex>
+          </v-layout>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -130,7 +139,8 @@ export default {
     return {
       message: null,
       snackbar: false,
-      feature: null,
+      features: [],
+      pagination: 0,
       dialog: false,
       headers: [
         {
@@ -190,7 +200,6 @@ export default {
         })
         Object.keys(oldStyle.sources).forEach(key => {
           if (key !== 'wmts' && key !== 'wms' && key !== 'bygning' && key !== 'composite' && !style.sources.hasOwnProperty(key)) {
-            console.log(key)
             style.sources[key] = oldStyle.sources[key]
           }
         })
@@ -279,6 +288,23 @@ export default {
     ...mapGetters('layers', {
       layers: 'list'
     }),
+    feature () {
+      if (this.pagination !== undefined && this.features.length > 0) {
+        let item = this.features[this.pagination - 1]
+        const group = this.layers.find(group => {
+          return group.id === item.layer.source
+        })
+        if (group !== undefined) {
+          const layer = group.layers.find(layer => {
+            return layer.id === item.layer.id
+          })
+          if (layer !== undefined) {
+            item.name = layer.name
+          }
+        }
+        return item
+      }
+    },
     items: function () {
       let items = []
       if (this.feature) {
@@ -371,6 +397,7 @@ export default {
         stylename = '/styles/satellite'
       }
       this.$axios.$get(stylename).then(style => {
+        keys = []
         map = new mapboxgl.Map({
           container: 'map',
           style: style,
@@ -380,23 +407,36 @@ export default {
 
         const nav = new mapboxgl.NavigationControl()
         map.addControl(nav, 'top-left')
+        map.addControl(new mapboxgl.GeolocateControl(), 'top-left')
         map.on('mousemove', e => {
-          var features = map.queryRenderedFeatures(e.point, {
+          const width = 10
+          const height = 10
+          var features = map.queryRenderedFeatures([
+            [e.point.x - width / 2, e.point.y - height / 2],
+            [e.point.x + width / 2, e.point.y + height / 2]
+          ], {
             layers: keys
           })
           map.getCanvas().style.cursor = features.length ? 'pointer' : ''
         })
         map.on('click', e => {
+          const width = 10
+          const height = 10
           e.originalEvent.stopPropagation()
-          let features = map.queryRenderedFeatures(e.point, {
+          this.pagination = 0
+          this.features = 0
+          let temp = map.queryRenderedFeatures([
+            [e.point.x - width / 2, e.point.y - height / 2],
+            [e.point.x + width / 2, e.point.y + height / 2]
+          ], {
             layers: keys
           })
-          if (!features.length) {
-            return
+          console.log(temp)
+          if (temp.length > 0) {
+            this.dialog = true
+            this.features = temp
+            this.pagination = 1
           }
-          let feature = features[0]
-          this.feature = feature
-          this.dialog = true
         })
         map.on('load', () => {
           console.log('map load')

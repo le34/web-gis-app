@@ -13,19 +13,19 @@
       "tileSize": 256,
       "minzoom": 0,
       "maxzoom": 20,
-      "attribution": "FOT ortofoto <a href='http://www.kortforsyningen.dk' target='_blank'>@ Geodatastyrelsen</a>"
+      "attribution": "© <a href='http://www.le34.dk'>LE34</a> © <a href='http://www.kortforsyningen.dk'>Geodatastyrelsen</a>"
     },
     "wms": {
       "type": "raster",
       "tiles": [
-        "http://a.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
-        "http://b.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
-        "http://c.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar"
+        "https://a.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
+        "https://b.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar",
+        "https://c.services.kortforsyningen.dk/orto_foraar?login=qgisdk&password=qgisdk&bbox={bbox-epsg-3857}&format=image/jpeg&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=orto_foraar"
       ],
       "tileSize": 256,
       "minzoom": 20,
       "maxzoom": 22,
-      "attribution": "FOT ortofoto <a href='http://www.kortforsyningen.dk' target='_blank'>@ Geodatastyrelsen</a>"
+      "attribution": "© <a href='http://www.le34.dk'>LE34</a> © <a href='http://www.kortforsyningen.dk'>Geodatastyrelsen</a>"
     },
     "centroide": {
       "type": "vector",

@@ -3,9 +3,9 @@
     <v-navigation-drawer :dark="dark" persistent app enable-resize-watcher v-model="drawer">
       <v-toolbar flat class="transparent">
         <v-list class="pa-0">
-          <v-list-tile avatar tag="div">
-            <v-list-tile-action>
-              <v-icon>settings</v-icon>
+          <v-list-tile avatar @click.stop="drawer=false">
+            <v-list-tile-action >
+              <v-icon>close</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
               <v-list-tile-title>Settings</v-list-tile-title>
