@@ -39,8 +39,8 @@
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="edit(props.item)" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="editClient(props.item)" class="text-xs-right select">{{ props.item.cvrno }}</td>
+        <td @click.stop="$router.push({ name: 'admin-company-id-project', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-company-id-project', params: { id: props.item.id } })" class="text-xs-right select">{{ props.item.cvrno }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -60,7 +60,7 @@
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogRemove" lazy absolute>
+    <v-dialog v-model="dialogRemove" persistent max-width="500">
       <v-card>
         <v-card-title>
           <div class="headline">Remove Clients</div>
@@ -85,7 +85,6 @@ export default {
   },
   data () {
     return {
-      title: 'Company - Clients',
       valid: false,
       fab: false,
       showSearch: false,
@@ -143,9 +142,6 @@ export default {
           console.log('error', err)
         })
       }
-    },
-    edit (item) {
-      this.$router.push({ name: 'index-admin-company-id', params: { id: item.id } })
     }
   },
   computed: {
@@ -175,6 +171,9 @@ export default {
       set (value) {
         this.$store.commit('drawer', value)
       }
+    },
+    title () {
+      return this.company ? this.company.data.name + ' - Clients' : 'Clients'
     }
   },
   watch: {

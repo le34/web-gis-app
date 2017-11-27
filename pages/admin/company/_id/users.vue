@@ -62,7 +62,7 @@
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogDeleteUsers" lazy absolute>
+    <v-dialog v-model="dialogDeleteUsers" persistent max-width="500">
       <v-card>
         <v-card-title>
           <div class="headline">Delete user</div>
@@ -87,7 +87,6 @@ export default {
   },
   data () {
     return {
-      title: 'Company - Users',
       valid: false,
       fab: false,
       showSearch: false,
@@ -161,11 +160,17 @@ export default {
       usersRaw: 'list'
     }),
     ...mapGetters('company', {
-      company: 'list'
+      getCompany: 'get'
     }),
     ...mapGetters('roles', {
       roles: 'list'
     }),
+    company () {
+      return this.getCompany(this.$route.params.id)
+    },
+    title () {
+      return this.company ? this.company.data.name + ' - Users' : 'Users'
+    },
     drawer: {
       get () {
         return this.$store.state.drawer

@@ -1,17 +1,15 @@
 <template>
   <v-app>
-    <v-navigation-drawer persistent app enable-resize-watcher v-model="drawer" :mini-variant.sync="mini">
-      <v-toolbar flat class="transparent" v-show="!mini">
+    <v-navigation-drawer fixed app v-model="drawer">
+      <v-toolbar flat class="transparent">
         <v-list class="pa-0">
-          <v-list-tile avatar tag="div">
-            <v-list-tile-content>
-              <v-list-tile-title>Menu</v-list-tile-title>
-            </v-list-tile-content>
-            <v-list-tile-action>
-              <v-btn dark icon @click.native.stop="mini =! mini">
-                <v-icon>chevron_left</v-icon>
-              </v-btn>
+          <v-list-tile avatar @click.stop="drawer=false">
+            <v-list-tile-action >
+              <v-icon>close</v-icon>
             </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Settings</v-list-tile-title>
+            </v-list-tile-content>
           </v-list-tile>
         </v-list>
       </v-toolbar>
@@ -56,17 +54,7 @@
         </v-list-group>
       </v-list>
     </v-navigation-drawer>
-    
-    <!--v-toolbar app fixed dark class="primary">
-            <v-toolbar-side-icon @click.stop="drawer = !drawer" />
-            <v-btn dark icon @click.stop="$router.go(-1)">
-              <v-icon>arrow_back</v-icon>
-            </v-btn>
-            <v-toolbar-title>LE34 - Kort</v-toolbar-title>      
-          </v-toolbar-->
-    <main>
-      <nuxt-child/>
-    </main>
+    <nuxt-child/>
   </v-app>
 </template>
 <script>
@@ -92,14 +80,6 @@ export default {
       },
       set (value) {
         this.$store.commit('drawer', value)
-      }
-    },
-    mini: {
-      get () {
-        return this.$store.state.mini
-      },
-      set (value) {
-        this.$store.commit('mini', value)
       }
     }
   }

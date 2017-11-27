@@ -1,5 +1,6 @@
 // Specify overrides (theme and/or base variables etc.)
 // See https://vuetifyjs.com/quick-start
+/*
 $theme := {
   primary: #ce181e
   accent: #ce93d8
@@ -9,15 +10,29 @@ $theme := {
   error: #B71C1C
   success: #2E7D32
 }
+*/
 .legend .list__tile
   padding-left 16px !important
 
 // Import Vuetify styling
 @require '~vuetify/src/stylus/main.styl'
-
+/*
 .page
   @extend .fade-transition
-
+*/
+for heading, options in $headings 
+   {heading} 
+     font-size: options.size 
+     font-weight: options.weight 
+     if options.line-height 
+       line-height: options.line-height 
+     if options.letter-spacing 
+       letter-spacing: options.letter-spacing 
+     margin-bottom: $spacers.three.y 
+      
+     @media screen and (max-width: $grid-breakpoints.sm) 
+       font-size: options.size * .6 
+       
 .layer-switcher
   transform:rotate(0deg)
   height: 100px

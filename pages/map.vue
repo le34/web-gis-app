@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-navigation-drawer :dark="dark" persistent app enable-resize-watcher v-model="drawer">
+    <v-navigation-drawer :dark="dark" fixed app v-model="drawer">
       <v-toolbar flat class="transparent">
         <v-list class="pa-0">
           <v-list-tile avatar @click.stop="drawer=false">
@@ -62,6 +62,7 @@
             <v-list-tile-title>Matrikelkort</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
+        <v-divider></v-divider>
         <v-list-group v-for="group in groups" v-bind:key="group.id" value="true">
           <v-list-tile slot="item">
             <v-list-tile-action>
@@ -74,9 +75,15 @@
               <v-icon dark>keyboard_arrow_down</v-icon>
             </v-list-tile-action>
           </v-list-tile>
-          <div class="teal darken-1 white--text group-info">
-            {{group.name}}<br/> {{group.createdAt}}
-          </div>
+          <v-list-tile class="legend" @click.stop="zoom(group)">
+            <v-list-tile-content>
+              <v-list-tile-title>{{group.name}}</v-list-tile-title>
+              <v-list-tile-title>{{group.createdAt}}</v-list-tile-title>
+            </v-list-tile-content>
+            <v-list-tile-action>
+              <v-icon>visibility</v-icon>
+            </v-list-tile-action>
+          </v-list-tile>
           <v-list-tile class="legend" v-for="layer in group.layers" v-bind:key="layer.id">
             <v-list-tile-action>
               <v-switch v-model="layer.visible" @click.stop="hideLayer(group, layer)"></v-switch>
@@ -100,9 +107,7 @@
       <img src="/icon.png" height="63" @click.stop="$router.push('/')" style="cursor: pointer"/>
       <v-toolbar-title>{{title}}</v-toolbar-title>
     </v-toolbar>
-    <main>
-      <nuxt-child/>
-    </main>
+    <nuxt-child/>
   </v-app>
 </template>
 <script>
@@ -135,6 +140,9 @@ export default {
       let layer = { ...item }
       layer.visible = !layer.visible
       this.$store.commit('layers/editLayer', { id: group.id, layer })
+    },
+    zoom (group) {
+      this.$emit('zoom', group.bounds)
     }
   },
   computed: {

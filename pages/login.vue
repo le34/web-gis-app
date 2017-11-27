@@ -4,28 +4,26 @@
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
       <v-toolbar-title>{{title}}</v-toolbar-title>
     </v-toolbar>
-    <main>
-      <v-content>
-        <v-container>
-          <v-form v-model="valid" ref="form" @submit.prevent>
-            <v-card>
-              <v-card-title class="title" primary-title>Login
-              </v-card-title>
-              <v-card-text>
-                <v-text-field label="Email" type="email" v-model="email" required></v-text-field>
-                <v-text-field label="Password" type="password" v-model="password" required></v-text-field>
-                <p>Don't have an account? Contact <a href="mailto:rut@le34.dk?Subject=Signup">rut@le34.dk</a></p>
-              </v-card-text>
-              <v-card-actions>
-                <v-spacer/>
-                <v-btn type="submit" color="primary" @click="submit">Log In</v-btn>
-                <v-btn flat color="primary" @click="sendResetPwd">Forgot password?</v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-form>
-        </v-container>
-      </v-content>
-    </main>
+    <v-content>
+      <v-container>
+        <v-form v-model="valid" ref="form" @submit.prevent>
+          <v-card>
+            <v-card-title class="title" primary-title>Login
+            </v-card-title>
+            <v-card-text>
+              <v-text-field label="Email" type="email" v-model="email" required></v-text-field>
+              <v-text-field label="Password" type="password" v-model="password" required></v-text-field>
+              <p>Don't have an account? Contact <a href="mailto:rut@le34.dk?Subject=Signup">rut@le34.dk</a></p>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer/>
+              <v-btn type="submit" color="primary" @click="submit">Log In</v-btn>
+              <v-btn flat color="primary" @click="sendResetPwd">Forgot password?</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-form>
+      </v-container>
+    </v-content>
     <v-snackbar color="error" v-model="snackbar">
       {{ message }}
       <v-btn dark flat @click.native="snackbar = false">Luk</v-btn>

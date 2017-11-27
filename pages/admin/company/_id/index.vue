@@ -32,9 +32,9 @@
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-company-id-data', params: { id: $route.params.id } }">
-                <v-icon left>cloud</v-icon>
-                  Data
+              <v-btn flat :to="{ name: 'admin-company-id-project', params: { id: $route.params.id } }">
+                <v-icon left>assignment</v-icon>
+                  Projects
               </v-btn>
             </v-flex>
           </v-layout>
@@ -50,11 +50,14 @@ import { mapGetters } from 'vuex'
 export default {
   data () {
     return {
-      title: 'Edit Company'
+
     }
   },
   methods: {},
   computed: {
+    title () {
+      return this.company ? this.company.data.name : 'Company'
+    },
     ...mapGetters('users', {
       usersRaw: 'list'
     }),

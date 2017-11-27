@@ -12,8 +12,8 @@
           <v-spacer/>
           <v-btn flat icon @click.native="dialog = false"><v-icon>close</v-icon></v-btn>
         </v-toolbar>
-        <v-card-text class="pa-0">
-          <v-data-table style="height: 300px;" v-bind:headers="headers" :items="items" hide-actions class="elevation-1">
+        <v-card-text class="pa-0" style="height: 300px;">
+          <v-data-table v-bind:headers="headers" :items="items" hide-actions class="elevation-1">
             <template slot="items" scope="props">
               <td>{{ props.item.name }}</td>
               <td>{{ props.item.name==='feature' && feature.name? feature.name : props.item.value }}</td>
@@ -41,7 +41,7 @@ let keys = []
 let codeTables = {}
 
 const createDataLayers = function (data) {
-  let group = { ...data, visible: true }
+  const group = { ...data, visible: true }
   this.$axios.$get('/tiles/' + group.id).then(tileJson => {
     const options = {
       type: 'vector',
@@ -110,7 +110,7 @@ const createDataLayers = function (data) {
                 }
               }
               layer.id = data.id
-              layer.source = this.$route.params.dataId
+              layer.source = group.id
               layer['source-layer'] = data.id
               map.addLayer(layer)
               this.$store.dispatch('layers/add', {

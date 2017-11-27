@@ -7,7 +7,7 @@
           <v-icon>close</v-icon>
         </v-btn>
         <v-tooltip left>
-          <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
+          <v-btn fab dark small color="green" slot="activator" @click.stop="dialog = true">
             <v-icon>add</v-icon>
           </v-btn>
           <span>Create</span>
@@ -23,7 +23,7 @@
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-company-id', params: { id: $route.params.id } }">
+      <v-btn icon :to="{ name: 'admin-company-id-project', params: { id: $route.params.id } }">
         <v-icon>chevron_left</v-icon>
       </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -41,8 +41,9 @@
         </td>
         <td class="text-xs-left select">{{ props.item.createdAt }}</td>        
         <td class="text-xs-left select">{{ props.item.name }}</td>        
+        <td class="text-xs-left select">{{ props.item.company }}</td>        
         <td class="text-xs-left select">{{ props.item.progress }} %</td>
-        <td @click.stop="$router.push({ name: 'map-companyId-dataId', params: { companyId: $route.params.id, dataId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>
+        <td @click.stop="$router.push({ name: 'map-companyId-projectId-dataId', params: { companyId: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -52,7 +53,6 @@
             <div class="headline">Upload GeoJSON</div>
           </v-card-title>
           <v-card-text>
-            <v-select ref="company" :rules="companyRules" required item-text="data.name" :items="company" v-model="selectedCompany" label="Company"></v-select>
             <v-text-field :rules="fileRules" readonly required label="GeoJSON" hint="Choose GeoJSON file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
           </v-card-text>
           <v-card-actions>
@@ -63,7 +63,7 @@
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogDelete" lazy absolute>
+    <v-dialog v-model="dialogDelete" persistent max-width="500">
       <v-card>
         <v-card-title>
           <div class="headline">Delete Data</div>
@@ -105,39 +105,20 @@ export default {
   },
   data () {
     return {
-      title: 'Data',
       filesize: null,
       geojson: null,
-      clientId: null,
       name: null,
       filename: null,
       valid: false,
       fab: false,
       showSearch: false,
-      role: null,
-      email: null,
-      selectedCompany: null,
-      emailRules: [
-        v => !!v || 'Email er påkrævet',
-        v =>
-          /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v) ||
-          'E-mail must be valid'
-      ],
-      companyRules: [v => !!v || 'Company is required'],
       fileRules: [v => !!v || 'GeoJSON file is required'],
       dialog: false,
       dialogDelete: false,
       search: '',
       selected: [],
       headers: [
-
         /*
-        {
-          text: 'Company',
-          align: 'left',
-          sortable: true,
-          value: 'company'
-        },
         {
           text: 'Client',
           align: 'left',
@@ -157,6 +138,13 @@ export default {
           sortable: true,
           value: 'name'
         },
+        {
+          text: 'Client',
+          align: 'left',
+          sortable: true,
+          value: 'company'
+        },
+
         /*
         {
           text: 'User',
@@ -237,7 +225,6 @@ export default {
         this.filename = file[0].name
         this.filesize = formatsize(file[0].size)
         this.name = this.filename.substring(0, this.filename.length - 8)
-        console.log(this.name)
         const fr = new FileReader()
         fr.onload = () => {
           this.geojson = JSON.parse(fr.result)
@@ -249,10 +236,6 @@ export default {
       this.$nextTick(() =>
         this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus()
       )
-    },
-    create () {
-      this.dialog = true
-      // this.$nextTick(() => this.$refs.company.$el.getElementsByTagName('input')[0].focus())
     },
     deleteData () {
       this.dialogDelete = true
@@ -271,15 +254,13 @@ export default {
       if (this.valid) {
         this.$store
           .dispatch('data/create', {
-            companyId: this.selectedCompany.id,
-            clientId: this.$route.params.id,
+            companyId: this.$store.state.auth.user.companyId,
+            projectId: this.$route.params.projectId,
             name: this.name,
             userId: this.$store.state.auth.user.id,
             geojson: this.geojson
           })
           .then(res => {
-            this.selectedCompany = null
-            this.clientId = null
             this.name = null
             this.geojson = null
             this.filesize = null
@@ -294,23 +275,35 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('users', {
-      users: 'list'
-    }),
     ...mapGetters('company', {
-      companyRaw: 'list'
+      getCompany: 'get'
     }),
     ...mapGetters('data', {
-      data: 'list'
+      dataRaw: 'list'
     }),
-    company () {
-      return this.companyRaw.filter(item => {
-        return (
-          item.id === this.$route.params.id ||
-          (item.data.hasOwnProperty('clients') &&
-            item.data.clients.indexOf(this.$route.params.id) !== -1)
-        )
+    ...mapGetters('projects', {
+      getProject: 'get'
+    }),
+    dataFilter () {
+      return this.dataRaw.filter(item => {
+        return item.projectId === this.$route.params.projectId
       })
+    },
+    data () {
+      return this.dataFilter.map(item => {
+        let temp = { ...item }
+        temp.company = item['company.data'].name
+        return temp
+      })
+    },
+    company () {
+      return this.getCompany(this.$route.params.id)
+    },
+    project () {
+      return this.getProject(this.$route.params.projectId)
+    },
+    title () {
+      return (this.company ? this.company.data.name : '') + ' - ' + (this.project ? this.project.name : '')
     },
     drawer: {
       get () {
@@ -323,15 +316,20 @@ export default {
   },
   watch: {},
   mounted () {
-    this.$store.dispatch('users/find')
-    this.$store.dispatch('company/find')
+    this.$store.dispatch('company/find', {
+      query: {
+        id: this.$route.params.id
+      }
+    })
     this.$store.dispatch('data/find', {
       query: {
-        $select: ['id', 'name', 'createdAt', 'progress'],
-        $or: [
-          { companyId: this.$route.params.id },
-          { clientId: this.$route.params.id }
-        ]
+        $select: ['id', 'projectId', 'name', 'createdAt', 'progress'],
+        projectId: this.$route.params.projectId
+      }
+    })
+    this.$store.dispatch('projects/find', {
+      query: {
+        id: this.$route.params.projectId
       }
     })
   }

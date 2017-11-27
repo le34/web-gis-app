@@ -60,7 +60,7 @@
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogDeleteUsers" lazy absolute>
+    <v-dialog v-model="dialogDeleteUsers" persistent max-width="500">
       <v-card>
         <v-card-title>
           <div class="headline">Delete user</div>

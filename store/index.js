@@ -11,6 +11,7 @@ export const plugins = [
   service('/cvr'),
   service('/files'),
   service('/data'),
+  service('/projects'),
   service('/authManagement'),
   auth({
     userService: 'users'

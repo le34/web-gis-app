@@ -58,7 +58,7 @@
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogRemove" lazy absolute>
+    <v-dialog v-model="dialogRemove" persistent max-width="500">
       <v-card>
         <v-card-title>
           <div class="headline">Delete company</div>
