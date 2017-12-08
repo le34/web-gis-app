@@ -67,7 +67,7 @@ module.exports = {
         })
       }
       if (!ctx.dev && ctx.isClient) {
-        config.module.noParse = /(mapbox-gl)\.js$/
+        config.module.noParse = [/(mapbox-gl)\.js$/, /(mapbox-gl-draw)\.js$/, /(jsoneditor)\.js$/]
       }
     }
   }

@@ -39,7 +39,8 @@
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td class="text-xs-left select">{{ props.item.createdAt }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-company-id-project-projectId-dataId', params: { id: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select">{{ props.item.createdAt }}</td>
+        <td class="text-xs-left select">{{ props.item.sourceType }}</td>    
         <td class="text-xs-left select">{{ props.item.name }}</td>        
         <td class="text-xs-left select">{{ props.item.company }}</td>        
         <td class="text-xs-left select">{{ props.item.progress }} %</td>
@@ -50,11 +51,14 @@
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Upload GeoJSON</div>
+            <div class="headline">Create new datasource</div>
           </v-card-title>
           <v-card-text>
-            <v-text-field :rules="fileRules" readonly required label="GeoJSON" hint="Choose GeoJSON file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
+            <v-select v-model="datasourceType" item-text="name" item-value="id" :items="datasourceTypes" label="Select datasource type"></v-select>
+            <v-text-field v-if="datasourceType<2" :rules="fileRules" readonly :label="label" hint="Choose file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
+            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="PostgreSQL Connectionstring" hint="postgres://username:password@server:5432/database" v-model="postgres"></v-text-field>
           </v-card-text>
+          <v-progress-linear v-model="percentCompleted"></v-progress-linear>
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn color="primary" flat @click.native="dialog = false">Cancel</v-btn>
@@ -108,6 +112,7 @@ export default {
       filesize: null,
       geojson: null,
       name: null,
+      file: null,
       filename: null,
       valid: false,
       fab: false,
@@ -117,20 +122,22 @@ export default {
       dialogDelete: false,
       search: '',
       selected: [],
+      percentCompleted: 0,
+      datasourceTypes: [{id: 0, name: 'Vector'}, {id: 1, name: 'Raster'}, {id: 2, name: 'PostGIS Database'}],
+      datasourceType: 0,
+      postgres: null,
       headers: [
-        /*
-        {
-          text: 'Client',
-          align: 'left',
-          sortable: true,
-          value: 'client'
-        },
-        */
         {
           text: 'Date',
           align: 'left',
           sortable: true,
           value: 'createdAt'
+        },
+        {
+          text: 'Source Type',
+          align: 'left',
+          sortable: true,
+          value: 'sourceType'
         },
         {
           text: 'Name',
@@ -144,15 +151,6 @@ export default {
           sortable: true,
           value: 'company'
         },
-
-        /*
-        {
-          text: 'User',
-          align: 'left',
-          sortable: true,
-          value: 'user'
-        },
-        */
         {
           text: 'Progress',
           align: 'left',
@@ -168,6 +166,9 @@ export default {
     }
   },
   methods: {
+    onUploadProgress (progressEvent) {
+      this.percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+    },
     edit (item) {
       this.$router.push()
     },
@@ -220,16 +221,19 @@ export default {
           input.dispatchEvent(evt)
         })
       }
-
-      fileDialog({ accept: '.geojson' }).then(file => {
+      console.log(this.datasourceType)
+      fileDialog({ accept: this.datasourceType === 0 ? '.geojson' : '.mbtiles' }).then(file => {
+        this.file = file[0]
         this.filename = file[0].name
         this.filesize = formatsize(file[0].size)
         this.name = this.filename.substring(0, this.filename.length - 8)
-        const fr = new FileReader()
-        fr.onload = () => {
-          this.geojson = JSON.parse(fr.result)
+        if (this.datasourceType === 0) {
+          const fr = new FileReader()
+          fr.onload = () => {
+            this.geojson = JSON.parse(fr.result)
+          }
+          fr.readAsText(file[0])
         }
-        fr.readAsText(file[0])
       })
     },
     focus () {
@@ -240,37 +244,57 @@ export default {
     deleteData () {
       this.dialogDelete = true
       this.selected.forEach(item => {
-        this.$store
-          .dispatch('data/remove', item.id)
-          .then(res => {
-            this.dialogDelete = false
-          })
-          .catch(err => {
-            console.log(err)
-          })
+        this.$store.dispatch('data/remove', item.id).then(res => {
+          this.dialogDelete = false
+        }).catch(err => {
+          console.log(err)
+        })
       })
     },
     save () {
       if (this.valid) {
-        this.$store
-          .dispatch('data/create', {
-            companyId: this.$store.state.auth.user.companyId,
-            projectId: this.$route.params.projectId,
-            name: this.name,
-            userId: this.$store.state.auth.user.id,
-            geojson: this.geojson
-          })
-          .then(res => {
-            this.name = null
-            this.geojson = null
-            this.filesize = null
-            this.$refs.form.reset()
-            this.dialog = false
-          })
-          .catch(err => {
-            console.log('error', err)
-            this.message = err
-          })
+        let options = {
+          companyId: this.$store.state.auth.user.companyId,
+          projectId: this.$route.params.projectId,
+          name: this.name,
+          meta: {
+            source: this.datasourceType
+          },
+          userId: this.$store.state.auth.user.id
+        }
+        if (this.datasourceType === 0) {
+          options.geojson = this.geojson
+        } else if (this.datasourceType === 1) {
+
+        } else if (this.datasourceType === 2) {
+          options.meta.postgres = this.postgres
+        }
+        this.$store.dispatch('data/create', options).then(res => {
+          if (this.datasourceType === 1) {
+            var formData = new FormData()
+            formData.append('id', res.id)
+            formData.append('mbtile', this.file)
+            var config = {
+              onUploadProgress: this.onUploadProgress
+
+            }
+            const uri = process.env.FEATHERS
+            return this.$axios.post(uri + '/files', formData, config)
+          }
+          return null
+        }).then(res => {
+          this.$refs.form.reset()
+          this.name = null
+          this.geojson = null
+          this.file = null
+          this.filesize = null
+          this.datasourceType = 0
+          this.postgres = null
+          this.dialog = false
+        }).catch(err => {
+          console.log('error', err)
+          this.message = err
+        })
       }
     }
   },
@@ -284,6 +308,9 @@ export default {
     ...mapGetters('projects', {
       getProject: 'get'
     }),
+    label () {
+      return this.datasourceType ? this.datasourceTypes[this.datasourceType].name : this.datasourceTypes[0].name
+    },
     dataFilter () {
       return this.dataRaw.filter(item => {
         return item.projectId === this.$route.params.projectId
@@ -293,6 +320,7 @@ export default {
       return this.dataFilter.map(item => {
         let temp = { ...item }
         temp.company = item['company.data'].name
+        temp.sourceType = item.meta && item.meta.source ? this.datasourceTypes[item.meta.source].name : this.datasourceTypes[0].name
         return temp
       })
     },
@@ -323,7 +351,7 @@ export default {
     })
     this.$store.dispatch('data/find', {
       query: {
-        $select: ['id', 'projectId', 'name', 'createdAt', 'progress'],
+        $select: ['id', 'projectId', 'name', 'meta', 'style', 'createdAt', 'progress'],
         projectId: this.$route.params.projectId
       }
     })

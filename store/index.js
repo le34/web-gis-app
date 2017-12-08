@@ -12,6 +12,7 @@ export const plugins = [
   service('/files'),
   service('/data'),
   service('/projects'),
+  service('/totals'),
   service('/authManagement'),
   auth({
     userService: 'users'
@@ -19,7 +20,7 @@ export const plugins = [
 ]
 
 export const state = () => ({
-  drawer: true,
+  drawer: false,
   mini: false,
   dark: true,
   title: null,

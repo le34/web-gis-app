@@ -1,135 +1,173 @@
 <template>
   <v-content>
+    <v-container fluid fill-height class="pa-0">
+      <v-layout>
+        <v-flex d-flex>
     <div id="map"></div>
+        </v-flex>
+      </v-layout>
+    </v-container>
     <v-snackbar color="error" v-model="snackbar">
       {{ message }}
       <v-btn dark flat @click.native="snackbar = false">Luk</v-btn>
     </v-snackbar>
-    <v-dialog max-width="500px" scrollable v-model="dialog" :fullscreen="$vuetify.breakpoint.xsOnly" lazy>
-      <v-card>
-        <v-toolbar card>
-          <v-toolbar-title>{{feature ? feature.name : ''}}</v-toolbar-title>
-          <v-spacer/>
-          <v-btn flat icon @click.native="dialog = false"><v-icon>close</v-icon></v-btn>
-        </v-toolbar>
-        <v-card-text class="pa-0" style="height: 300px;">
-          <v-data-table v-bind:headers="headers" :items="items" hide-actions class="elevation-1">
-            <template slot="items" scope="props">
-              <td>{{ props.item.name }}</td>
-              <td>{{ props.item.name==='feature' && feature.name? feature.name : props.item.value }}</td>
-            </template>
-          </v-data-table>
-        </v-card-text>
-        <v-card-actions>
-          <v-layout>
-            <v-flex>
-              <div class="text-xs-center pt-2">
-                <v-pagination v-model="pagination" :length="features.length"></v-pagination>
-              </div>
-            </v-flex>
-          </v-layout>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-content>
 </template>
 <script>
+import {v4} from 'uuid'
 import { mapGetters } from 'vuex'
 require('mapbox-gl/dist/mapbox-gl.css')
 let map
 let keys = []
-let codeTables = {}
 
 const createDataLayers = function (data) {
   const group = { ...data, visible: true }
-  this.$axios.$get('/tiles/' + group.id).then(tileJson => {
-    const options = {
-      type: 'vector',
-      tiles: [
-        window.location.protocol +
-          '//' +
-          window.location.host +
-          '/api/tiles/' +
-          group.id +
-          '/{z}/{x}/{y}.pbf'
-      ],
-      maxzoom: tileJson.maxzoom,
-      minzoom: tileJson.minzoom,
-      bounds: tileJson.bounds
-    }
-    map.addSource(group.id, options)
-    map.fitBounds(tileJson.bounds)
-    const promises = []
-    tileJson.vector_layers.forEach(data => {
-      const layerid = data.id.split('#')
-      if (layerid.length > 1) {
-        const kode = layerid[0]
-        // const name = data.id.substr(kode.length + 1)
-        if (!codeTables.hasOwnProperty(kode)) {
-          promises.push(this.$axios.$get('/style/' + kode))
-          codeTables[kode] = {}
-        }
-      }
+  group.collapse = true
+  if (data.style) {
+    Object.keys(data.style.sources).forEach(id => {
+      map.addSource(id, data.style.sources[id])
+      group.bounds = data.style.sources[id].bounds
     })
-    Promise.all(promises)
-      .then(items => {
-        items.forEach(item => {
-          codeTables[item.id] = item.layers
-        })
+    data.style.layers.forEach(item => {
+      let layer = JSON.parse(JSON.stringify(item))
+      if (layer.type === 'raster') {
+        const before = map.getLayer('matrikel_skel')
+        if (before) {
+          map.addLayer(layer, before.id)
+        } else {
+          map.addLayer(layer)
+        }
+      } else {
+        if (this.dark) {
+          if (layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#000000') {
+            layer.paint['line-color'] = '#ffffff'
+          } else if (layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#000000') {
+            layer.paint['circle-color'] = '#ffffff'
+          }
+        } else {
+          if (layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#ffffff') {
+            layer.paint['line-color'] = '#000000'
+          } else if (layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#ffffff') {
+            layer.paint['circle-color'] = '#000000'
+          }
+        }
+        map.addLayer(layer)
+        keys.push(layer.id)
+      }
+      this.$store.dispatch('layers/add', {
+        group,
+        layer: {
+          id: layer.id,
+          name: layer.metadata && layer.metadata.name ? layer.metadata.name : data.name,
+          visible: true,
+          type: layer.type,
+          paint: layer.paint
+        }
+      })
+    })
+    map.fitBounds(group.bounds)
+  } else {
+    this.$axios.$get('/tiles/' + group.id).then(tileJson => {
+      const options = {
+        type: tileJson.format === 'pbf' ? 'vector' : 'raster',
+        tiles: tileJson.tiles,
+        maxzoom: tileJson.maxzoom,
+        minzoom: tileJson.minzoom,
+        bounds: tileJson.bounds
+      }
+      group.bounds = [...tileJson.bounds]
+
+      map.addSource(group.id, options)
+      map.fitBounds(tileJson.bounds)
+      if (tileJson.format === 'pbf') {
+        const promises = []
         tileJson.vector_layers.forEach(data => {
           const layerid = data.id.split('#')
           if (layerid.length > 1) {
             const kode = layerid[0]
-            const name = data.id.substr(kode.length + 1)
-            const kodetabel = codeTables[kode]
-            if (kodetabel.hasOwnProperty(name)) {
-              let layer = kodetabel[name]
-              if (this.dark) {
-                if (
-                  layer.paint.hasOwnProperty('line-color') &&
-                  layer.paint['line-color'] === '#000000'
-                ) {
-                  layer.paint['line-color'] = '#ffffff'
-                } else if (
-                  layer.paint.hasOwnProperty('circle-color') &&
-                  layer.paint['circle-color'] === '#000000'
-                ) {
-                  layer.paint['circle-color'] = '#ffffff'
-                }
-              } else {
-                if (
-                  layer.paint.hasOwnProperty('line-color') &&
-                  layer.paint['line-color'] === '#ffffff'
-                ) {
-                  layer.paint['line-color'] = '#000000'
-                } else if (
-                  layer.paint.hasOwnProperty('circle-color') &&
-                  layer.paint['circle-color'] === '#ffffff'
-                ) {
-                  layer.paint['circle-color'] = '#000000'
-                }
-              }
-              layer.id = data.id
-              layer.source = group.id
-              layer['source-layer'] = data.id
-              map.addLayer(layer)
-              this.$store.dispatch('layers/add', {
-                group,
-                layer: {
-                  id: data.id,
-                  name: layer.name || name,
-                  visible: true,
-                  type: layer.type,
-                  paint: layer.paint
-                }
-              })
-              keys.push(data.id)
+            // const name = data.id.substr(kode.length + 1)
+            if (!this.codeTables.hasOwnProperty(kode)) {
+              promises.push(this.$axios.$get('/style/' + kode))
+              this.$store.commit('code-tables/add', { [kode]: {} })
             }
           }
         })
-      })
-      .catch(err => console.log(err))
-  })
+        Promise.all(promises).then(items => {
+          items.forEach(item => {
+            this.$store.commit('code-tables/add', { [item.id]: item.layers })
+          })
+          tileJson.vector_layers.forEach(data => {
+            const layerid = data.id.split('#')
+            if (layerid.length > 1) {
+              const kode = layerid[0]
+              const name = data.id.substr(kode.length + 1)
+              const kodetabel = this.getCode(kode)
+              if (kodetabel.hasOwnProperty(name)) {
+                let layer = JSON.parse(JSON.stringify(kodetabel[name]))
+                if (this.dark) {
+                  if (
+                    layer.paint.hasOwnProperty('line-color') &&
+                  layer.paint['line-color'] === '#000000'
+                  ) {
+                    layer.paint['line-color'] = '#ffffff'
+                  } else if (
+                    layer.paint.hasOwnProperty('circle-color') &&
+                  layer.paint['circle-color'] === '#000000'
+                  ) {
+                    layer.paint['circle-color'] = '#ffffff'
+                  }
+                } else {
+                  if (
+                    layer.paint.hasOwnProperty('line-color') &&
+                  layer.paint['line-color'] === '#ffffff'
+                  ) {
+                    layer.paint['line-color'] = '#000000'
+                  } else if (
+                    layer.paint.hasOwnProperty('circle-color') &&
+                  layer.paint['circle-color'] === '#ffffff'
+                  ) {
+                    layer.paint['circle-color'] = '#000000'
+                  }
+                }
+                layer.id = v4()
+                layer.metadata = { name: layer.name || name }
+                layer.source = group.id
+                layer['source-layer'] = data.id
+                map.addLayer(layer)
+                this.$store.dispatch('layers/add', {
+                  group,
+                  layer: {
+                    id: layer.id,
+                    name: layer.name || name,
+                    feature: data.id,
+                    visible: true,
+                    type: layer.type,
+                    paint: layer.paint
+                  }
+                })
+                keys.push(layer.id)
+              }
+            }
+          })
+        }).catch(err => console.log(err))
+      } else {
+        map.addLayer({
+          id: group.id,
+          type: 'raster',
+          source: group.id
+        }, 'matrikel_skel')
+        this.$store.dispatch('layers/add', {
+          group,
+          layer: {
+            id: group.id,
+            name: data.name,
+            visible: true,
+            type: 'raster'
+          }
+        })
+      }
+    })
+  }
 }
 
 export default {
@@ -139,23 +177,6 @@ export default {
     return {
       message: null,
       snackbar: false,
-      features: [],
-      pagination: 0,
-      dialog: false,
-      headers: [
-        {
-          text: 'Name',
-          align: 'left',
-          sortable: true,
-          value: 'name'
-        },
-        {
-          text: 'Value',
-          align: 'left',
-          sortable: false,
-          value: 'value'
-        }
-      ],
       layersOpt
     }
   },
@@ -166,6 +187,10 @@ export default {
     setStyle (name, dark) {
       const oldStyle = map.getStyle()
       this.$axios.$get(name).then(style => {
+        let indexOfMatrikel = style.layers.findIndex(item => {
+          return item.id === 'matrikel_skel'
+        })
+
         oldStyle.layers.forEach(layer => {
           if (layer.id !== 'background' && layer.id !== 'wmts' && layer.id !== 'wms' && layer.id !== 'building' && layer.source !== 'composite' && !style.sources.hasOwnProperty(layer.source)) {
             if (layer.hasOwnProperty('paint')) {
@@ -195,7 +220,12 @@ export default {
                 }
               }
             }
-            style.layers.push(layer)
+            if (indexOfMatrikel !== -1 && layer.type === 'raster') {
+              style.layers.splice(indexOfMatrikel, 0, layer)
+              indexOfMatrikel++
+            } else {
+              style.layers.push(layer)
+            }
           }
         })
         Object.keys(oldStyle.sources).forEach(key => {
@@ -288,32 +318,12 @@ export default {
     ...mapGetters('layers', {
       layers: 'list'
     }),
-    feature () {
-      if (this.pagination !== undefined && this.features.length > 0) {
-        let item = this.features[this.pagination - 1]
-        const group = this.layers.find(group => {
-          return group.id === item.layer.source
-        })
-        if (group !== undefined) {
-          const layer = group.layers.find(layer => {
-            return layer.id === item.layer.id
-          })
-          if (layer !== undefined) {
-            item.name = layer.name
-          }
-        }
-        return item
-      }
-    },
-    items: function () {
-      let items = []
-      if (this.feature) {
-        Object.keys(this.feature.properties).forEach(key => {
-          items.push({ name: key, value: this.feature.properties[key] })
-        })
-      }
-      return items
-    },
+    ...mapGetters('code-tables', {
+      codeTables: 'list'
+    }),
+    ...mapGetters('code-tables', {
+      getCode: 'get'
+    }),
     drawer () {
       return this.$store.state.drawer
     },
@@ -381,11 +391,22 @@ export default {
     }
   },
   mounted () {
+    this.$parent.$parent.$on('zoom', bounds => {
+      map.fitBounds(bounds)
+    })
     this.$store.commit('layers/list', [])
     this.$store.dispatch('data/find', {
       query: {
         id: this.$route.params.dataId,
-        $select: ['id', 'name', 'createdAt']
+        $select: [
+          'id',
+          'projectId',
+          'name',
+          'meta',
+          'style',
+          'createdAt',
+          'progress'
+        ]
       }
     }).then(data => {
       const mapboxgl = require('mapbox-gl/dist/mapbox-gl')
@@ -404,40 +425,12 @@ export default {
           center: new mapboxgl.LngLat(12, 56),
           zoom: 7
         })
-
-        const nav = new mapboxgl.NavigationControl()
-        map.addControl(nav, 'top-left')
-        map.addControl(new mapboxgl.GeolocateControl(), 'top-left')
-        map.on('mousemove', e => {
-          const width = 10
-          const height = 10
-          var features = map.queryRenderedFeatures([
-            [e.point.x - width / 2, e.point.y - height / 2],
-            [e.point.x + width / 2, e.point.y + height / 2]
-          ], {
-            layers: keys
-          })
-          map.getCanvas().style.cursor = features.length ? 'pointer' : ''
-        })
-        map.on('click', e => {
-          const width = 10
-          const height = 10
-          e.originalEvent.stopPropagation()
-          this.pagination = 0
-          this.features = 0
-          let temp = map.queryRenderedFeatures([
-            [e.point.x - width / 2, e.point.y - height / 2],
-            [e.point.x + width / 2, e.point.y + height / 2]
-          ], {
-            layers: keys
-          })
-          console.log(temp)
-          if (temp.length > 0) {
-            this.dialog = true
-            this.features = temp
-            this.pagination = 1
-          }
-        })
+        map.controls = {}
+        this.$parent.$parent.map = map
+        map.controls.navigation = new mapboxgl.NavigationControl()
+        map.addControl(map.controls.navigation, 'top-left')
+        map.controls.geolocate = new mapboxgl.GeolocateControl()
+        map.addControl(map.controls.geolocate, 'top-left')
         map.on('load', () => {
           console.log('map load')
           this.showMatrikel(this.matrikel)
@@ -454,11 +447,12 @@ export default {
 }
 </script>
 <style scoped lang="stylus">
+/*
 #map {
   height: calc(100vh - 64px);
   width: 100%;
 }
-
+*/
 .map-card {
   display: flex;
   flex-direction: column;

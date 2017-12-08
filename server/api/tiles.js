@@ -24,7 +24,7 @@ router.get('/:id', function (req, res) {
         if (err || !info) {
           return res.status(404).send('ERROR: Metadata missing in the MBTiles.')
         }
-        info.tiles = [urlPrefix + '/api/tiles/' + req.params.id + '/{z}/{x}/{y}.pbf']
+        info.tiles = [urlPrefix + '/api/tiles/' + req.params.id + '/{z}/{x}/{y}.' + info.format]
         res.json(info)
       })
     })
