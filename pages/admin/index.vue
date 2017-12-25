@@ -17,7 +17,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer/>
-          <v-btn nuxt to="/admin/company" flat color="primary">Go To Companies</v-btn>
+          <v-btn nuxt to="/admin/companies" flat color="primary">Go To Companies</v-btn>
         </v-card-actions>
       </v-card>
     </v-container>

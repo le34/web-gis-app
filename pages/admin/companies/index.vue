@@ -16,16 +16,13 @@
           <v-btn fab dark small color="red" slot="activator" @click.stop="dialogRemove = true">
             <v-icon>delete</v-icon>
           </v-btn>
-          <span>Remove</span>
+          <span>Delete</span>
         </v-tooltip>
       </v-speed-dial>
     </v-fab-transition>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-company-id', params: { id: $route.params.id } }">
-        <v-icon>chevron_left</v-icon>
-      </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon v-if="!showSearch && $vuetify.breakpoint.xsOnly" @click.stop="showSearch=!showSearch;focus()">
@@ -34,23 +31,24 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="clients" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="companies" :search="search" hide-actions>
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-company-id-project', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="$router.push({ name: 'admin-company-id-project', params: { id: props.item.id } })" class="text-xs-right select">{{ props.item.cvrno }}</td>
+        <td @click.stop="edit(props.item)" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="edit(props.item)" class="text-xs-right select">{{ props.item.cvr }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Add Client</div>
+            <div class="headline">Create new company</div>
           </v-card-title>
           <v-card-text>
-            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" required item-text="data.name" :items="selects" label="Select Company"></v-select>
+            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete required item-text="display" :items="items" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
+            <v-text-field readonly v-model="cvrNummer" label="CVR"></v-text-field>            
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -63,13 +61,13 @@
     <v-dialog v-model="dialogRemove" persistent max-width="500">
       <v-card>
         <v-card-title>
-          <div class="headline">Remove Clients</div>
+          <div class="headline">Delete company</div>
         </v-card-title>
-        <v-card-text>Remove selected clients?</v-card-text>
+        <v-card-text>Delete selected company?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Cancel</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="remove()">Remove</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="remove()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -85,6 +83,7 @@ export default {
   },
   data () {
     return {
+      title: 'Company',
       valid: false,
       fab: false,
       showSearch: false,
@@ -118,52 +117,36 @@ export default {
     },
     remove () {
       this.dialogRemove = true
-      const keys = this.selected.map(item => item.id)
-      let data = { ...this.company.data }
-      data.clients = this.clients.filter(item => keys.indexOf(item.id) === -1).map(item => item.id)
-      this.$store.dispatch('company/patch', [this.company.id, { data }]).then(res => {
-        console.log(res)
-        this.dialogRemove = false
-      }).catch(err => {
-        console.log('error', err)
+      this.selected.forEach(item => {
+        this.$store.dispatch('companies/remove', item.id).then(res => {
+          this.dialogRemove = false
+        }).catch(err => {
+          console.log(err)
+        })
       })
     },
     save () {
       if (this.valid) {
-        let data = { ...this.company.data }
-        data.clients = data.clients || []
-        data.clients = [ this.selectedCVR.id, ...data.clients ]
-        this.$store.dispatch('company/patch', [this.company.id, { data }]).then(res => {
-          console.log(res)
+        this.$store.dispatch('companies/create', {
+          name: this.selectedCVR.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn,
+          cvr: this.selectedCVR.Vrvirksomhed.cvrNummer
+        }).then((res) => {
           this.dialog = false
-          this.selectedCVR = null
           this.$refs.form.reset()
         }).catch(err => {
           console.log('error', err)
+          this.message = err
         })
       }
+    },
+    edit (item) {
+      this.$router.push({ name: 'admin-companies-id', params: { id: item.id } })
     }
   },
   computed: {
-    ...mapGetters('company', {
-      companyRaw: 'list',
-      getCompany: 'get'
+    ...mapGetters('companies', {
+      companies: 'list'
     }),
-    company () {
-      return this.getCompany(this.$route.params.id)
-    },
-    clients () {
-      return this.companyRaw.filter(item => {
-        return this.company && this.company.data && this.company.data.clients && this.company.data.clients.indexOf(item.id) !== -1
-      }).map(item => {
-        return { id: item.id, ...item.data }
-      })
-    },
-    selects () {
-      return this.companyRaw.filter(item => {
-        return !this.company || !this.company.data.clients || this.company.data.clients.indexOf(item.id) === -1
-      })
-    },
     drawer: {
       get () {
         return this.$store.state.drawer
@@ -172,14 +155,45 @@ export default {
         this.$store.commit('drawer', value)
       }
     },
-    title () {
-      return this.company ? this.company.data.name + ' - Clients' : 'Clients'
+    cvrNummer: {
+      get () {
+        return this.selectedCVR ? this.selectedCVR.Vrvirksomhed.cvrNummer : null
+      },
+      set (value) {
+      }
+    },
+    cvrSearch: {
+      get () {
+        return null
+      },
+      set (value) {
+        if (value) {
+          this.loading = true
+          this.$store.dispatch('cvr/find', {
+            query: {
+              $select: [
+                'Vrvirksomhed.cvrNummer',
+                'Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn'
+              ],
+              $sqs: {
+                $fields: ['Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn', 'Vrvirksomhed.cvrNummer'],
+                $query: value || ''
+              }
+            }
+          }).then((res) => {
+            this.items = res.map(item => {
+              return { display: '(' + item.Vrvirksomhed.cvrNummer + ') ' + item.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn, ...item }
+            })
+            this.loading = false
+          })
+        }
+      }
     }
   },
   watch: {
   },
   mounted () {
-    this.$store.dispatch('company/find')
+    this.$store.dispatch('companies/find')
   }
 }
 </script>

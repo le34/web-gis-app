@@ -8,6 +8,11 @@ export const state = () => ({
 })
 
 export const getters = {
+  get: state => data => {
+    return state.items.find(item => {
+      return item.id === data
+    })
+  },
   list: state => {
     return state.items
   },
@@ -23,7 +28,7 @@ export const getters = {
     })
     for (var i = 0; i < data.length; i++) {
       let item = {...data[i]}
-      item.layers = [...item.layers].sort((a, b) => {
+      item.groups = [...item.groups].sort((a, b) => {
         if (a.name < b.name) {
           return -1
         }
@@ -62,16 +67,22 @@ export const mutations = {
       return item.id === data.group.id
     })
     if (index === -1) {
-      state.items = [...state.items, {...data.group, layers: [data.layer]}]
+      state.items = [...state.items, {...data.group, groups: [{visible: data.layer.visible, name: data.layer.name, paint: data.layer.paint, layers: [data.layer], source: data.group.meta ? data.group.meta.source : 0}]}]
     } else {
-      const indexLayer = state.items[index].layers.findIndex(item => {
-        return item.id === data.layer.id
+      const indexGroup = state.items[index].groups.findIndex(group => {
+        return group.name === data.layer.name
       })
-      if (indexLayer === -1) {
-        let temp = [...state.items]
-        temp[index].layers = [...temp[index].layers, data.layer]
-        state.items = temp
+      let temp = [...state.items]
+      let groups = [...temp[index].groups]
+      if (indexGroup === -1) {
+        let group = {visible: data.layer.visible, name: data.layer.name, paint: data.layer.paint, layers: [data.layer], source: data.group.meta ? data.group.meta.source : 0}
+        temp[index].groups = [...temp[index].groups, group]
+      } else {
+        let group = {...groups[indexGroup]}
+        group.layers = [...group.layers, data.layer]
+        temp[index].groups[indexGroup] = group
       }
+      state.items = temp
     }
   },
   items (state, data) {
@@ -88,23 +99,21 @@ export const mutations = {
     }
   },
   editLayer (state, data) {
-    console.log(data)
     const index = state.items.findIndex(item => {
       return item.id === data.id
     })
     if (index !== -1) {
-      const indexLayer = state.items[index].layers.findIndex(item => {
-        return item.id === data.layer.id
+      const indexGroup = state.items[index].groups.findIndex(item => {
+        return item.name === data.layer.name
       })
-      if (indexLayer !== -1) {
+      if (indexGroup !== -1) {
         let group = {...state.items[index]}
-        let layers = [...group.layers]
-        layers[indexLayer] = data.layer
-        group.layers = layers
+        let subgroups = [...group.groups]
+        subgroups[indexGroup] = data.layer
+        group.groups = subgroups
         let groups = [...state.items]
         groups[index] = group
         state.items = groups
-        console.log('ok')
       }
     }
   },

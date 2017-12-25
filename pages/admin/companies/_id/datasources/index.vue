@@ -23,7 +23,7 @@
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-company-id-project', params: { id: $route.params.id } }">
+      <v-btn icon :to="{ name: 'admin-companies-id-project', params: { id: $route.params.id } }">
         <v-icon>chevron_left</v-icon>
       </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -39,11 +39,12 @@
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-company-id-project-projectId-dataId', params: { id: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select">{{ props.item.createdAt }}</td>
+        <td class="text-xs-left select">{{ props.item.priority }}</td>
+        <td @click.stop="$router.push({ name: 'admin-companies-id-project-projectId-dataId', params: { id: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select">{{ props.item.createdAt }}</td>
         <td class="text-xs-left select">{{ props.item.sourceType }}</td>    
         <td class="text-xs-left select">{{ props.item.name }}</td>        
         <td class="text-xs-left select">{{ props.item.company }}</td>        
-        <td class="text-xs-left select">{{ props.item.progress }} %</td>
+        <td class="text-xs-left select">{{ props.item.progress }} %</td>        
         <td @click.stop="$router.push({ name: 'map-companyId-projectId-dataId', params: { companyId: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>
       </template>
     </v-data-table>
@@ -55,8 +56,12 @@
           </v-card-title>
           <v-card-text>
             <v-select v-model="datasourceType" item-text="name" item-value="id" :items="datasourceTypes" label="Select datasource type"></v-select>
+            <v-text-field :rules="fileRules" required label="Name" v-model="name"></v-text-field>
             <v-text-field v-if="datasourceType<2" :rules="fileRules" readonly :label="label" hint="Choose file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
-            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="PostgreSQL Connectionstring" hint="postgres://username:password@server:5432/database" v-model="postgres"></v-text-field>
+            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Database Connectionstring" hint="postgres://username:password@server:5432/database" v-model="connectionString"></v-text-field>
+            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Table/View" v-model="dbTable"></v-text-field>
+            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Geometry Column" v-model="geometryColumn"></v-text-field>
+            <v-checkbox v-if="datasourceType===2" label="Create Tiles" v-model="tile"></v-checkbox>
           </v-card-text>
           <v-progress-linear v-model="percentCompleted"></v-progress-linear>
           <v-card-actions>
@@ -114,6 +119,7 @@ export default {
       name: null,
       file: null,
       filename: null,
+      tile: null,
       valid: false,
       fab: false,
       showSearch: false,
@@ -123,10 +129,18 @@ export default {
       search: '',
       selected: [],
       percentCompleted: 0,
-      datasourceTypes: [{id: 0, name: 'Vector'}, {id: 1, name: 'Raster'}, {id: 2, name: 'PostGIS Database'}],
+      datasourceTypes: [{id: 0, name: 'Vector'}, {id: 1, name: 'Raster'}, {id: 2, name: 'Database'}],
       datasourceType: 0,
-      postgres: null,
+      connectionString: null,
+      geometryColumn: null,
+      dbTable: null,
       headers: [
+        {
+          text: 'Priority',
+          align: 'left',
+          sortable: true,
+          value: 'priority'
+        },
         {
           text: 'Date',
           align: 'left',
@@ -267,7 +281,10 @@ export default {
         } else if (this.datasourceType === 1) {
 
         } else if (this.datasourceType === 2) {
-          options.meta.postgres = this.postgres
+          options.meta.connectionString = this.connectionString
+          options.meta.geometryColumn = this.geometryColumn
+          options.meta.dbTable = this.dbTable
+          options.meta.tile = this.tile
         }
         this.$store.dispatch('data/create', options).then(res => {
           if (this.datasourceType === 1) {
@@ -289,7 +306,10 @@ export default {
           this.file = null
           this.filesize = null
           this.datasourceType = 0
-          this.postgres = null
+          this.connectionString = null
+          this.geometryColumn = null
+          this.dbTable = null
+          this.tile = null
           this.dialog = false
         }).catch(err => {
           console.log('error', err)
@@ -299,10 +319,10 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('company', {
+    ...mapGetters('companies', {
       getCompany: 'get'
     }),
-    ...mapGetters('data', {
+    ...mapGetters('datasources', {
       dataRaw: 'list'
     }),
     ...mapGetters('projects', {
@@ -331,7 +351,7 @@ export default {
       return this.getProject(this.$route.params.projectId)
     },
     title () {
-      return (this.company ? this.company.data.name : '') + ' - ' + (this.project ? this.project.name : '')
+      return `${this.company ? this.company.name : ''} - ${this.project ? this.project.name : ''}`
     },
     drawer: {
       get () {
@@ -344,22 +364,14 @@ export default {
   },
   watch: {},
   mounted () {
-    this.$store.dispatch('company/find', {
-      query: {
-        id: this.$route.params.id
-      }
-    })
+    this.$store.dispatch('companies/get', this.$route.params.id)
     this.$store.dispatch('data/find', {
       query: {
-        $select: ['id', 'projectId', 'name', 'meta', 'style', 'createdAt', 'progress'],
+        // $select: ['id', 'projectId', 'name', 'meta', 'style', 'company.data', 'createdAt', 'progress'],
         projectId: this.$route.params.projectId
       }
     })
-    this.$store.dispatch('projects/find', {
-      query: {
-        id: this.$route.params.projectId
-      }
-    })
+    this.$store.dispatch('projects/get', this.$route.params.projectId)
   }
 }
 </script>

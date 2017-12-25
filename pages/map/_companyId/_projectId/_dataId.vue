@@ -24,48 +24,61 @@ const createDataLayers = function (data) {
   const group = { ...data, visible: true }
   group.collapse = true
   if (data.style) {
-    Object.keys(data.style.sources).forEach(id => {
-      map.addSource(id, data.style.sources[id])
-      group.bounds = data.style.sources[id].bounds
-    })
-    data.style.layers.forEach(item => {
-      let layer = JSON.parse(JSON.stringify(item))
-      if (layer.type === 'raster') {
-        const before = map.getLayer('matrikel_skel')
-        if (before) {
-          map.addLayer(layer, before.id)
-        } else {
-          map.addLayer(layer)
-        }
-      } else {
-        if (this.dark) {
-          if (layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#000000') {
-            layer.paint['line-color'] = '#ffffff'
-          } else if (layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#000000') {
-            layer.paint['circle-color'] = '#ffffff'
-          }
-        } else {
-          if (layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#ffffff') {
-            layer.paint['line-color'] = '#000000'
-          } else if (layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#ffffff') {
-            layer.paint['circle-color'] = '#000000'
-          }
-        }
-        map.addLayer(layer)
-        keys.push(layer.id)
+    Promise.resolve().then(() => {
+      const id = Object.keys(data.style.sources)[0]
+      const source = data.style.sources[id]
+      map.addSource(id, source)
+      if (source.bounds) {
+        return source.bounds
+      } else if (source.type === 'geojson') {
+        return this.$store.dispatch('extent/get', data.id).then(extent => {
+          return [extent.geometry.coordinates[0][0][0], extent.geometry.coordinates[0][0][1], extent.geometry.coordinates[0][2][0], extent.geometry.coordinates[0][2][1]]
+        })
       }
-      this.$store.dispatch('layers/add', {
-        group,
-        layer: {
-          id: layer.id,
-          name: layer.metadata && layer.metadata.name ? layer.metadata.name : data.name,
-          visible: true,
-          type: layer.type,
-          paint: layer.paint
+    }).then(bounds => {
+      group.bounds = bounds
+      data.style.layers.forEach(item => {
+        let layer = JSON.parse(JSON.stringify(item))
+        const visible = layer.layout && layer.layout.visibility ? layer.layout.visibility === 'visible' : true
+        group.visible = group.visible && visible
+
+        if (layer.type === 'raster') {
+          const before = map.getLayer('matrikel_skel')
+          if (before) {
+            map.addLayer(layer, before.id)
+          } else {
+            map.addLayer(layer)
+          }
+        } else {
+          if (this.dark) {
+            if (layer.paint && layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#000000') {
+              layer.paint['line-color'] = '#ffffff'
+            } else if (layer.paint && layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#000000') {
+              layer.paint['circle-color'] = '#ffffff'
+            }
+          } else {
+            if (layer.paint && layer.paint.hasOwnProperty('line-color') && layer.paint['line-color'] === '#ffffff') {
+              layer.paint['line-color'] = '#000000'
+            } else if (layer.paint && layer.paint.hasOwnProperty('circle-color') && layer.paint['circle-color'] === '#ffffff') {
+              layer.paint['circle-color'] = '#000000'
+            }
+          }
+          map.addLayer(layer)
+          keys.push(layer.id)
         }
+        this.$store.dispatch('layers/add', {
+          group,
+          layer: {
+            id: layer.id,
+            name: layer.metadata && layer.metadata.name ? layer.metadata.name : data.name,
+            visible: visible,
+            type: layer.type,
+            paint: layer.paint
+          }
+        })
       })
+      map.fitBounds(group.bounds)
     })
-    map.fitBounds(group.bounds)
   } else {
     this.$axios.$get('/tiles/' + group.id).then(tileJson => {
       const options = {
@@ -380,12 +393,14 @@ export default {
     },
     layers (data) {
       data.forEach(group => {
-        group.layers.forEach(item => {
-          map.setLayoutProperty(
-            item.id,
-            'visibility',
-            item.visible ? 'visible' : 'none'
-          )
+        group.groups.forEach(subgroup => {
+          subgroup.layers.forEach(item => {
+            map.setLayoutProperty(
+              item.id,
+              'visibility',
+              subgroup.visible ? 'visible' : 'none'
+            )
+          })
         })
       })
     }

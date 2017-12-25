@@ -211,6 +211,11 @@ export default {
                     temp.name = name
                   }
                 }
+              } else {
+                const layer = this.getLayer(item.id)
+                if (layer) {
+                  temp.name = layer.name
+                }
               }
               return temp
             })
@@ -248,6 +253,9 @@ export default {
     }),
     ...mapGetters('code-tables', {
       getCode: 'get'
+    }),
+    ...mapGetters('layers', {
+      getLayer: 'get'
     }),
     listArea () {
       let sum = {name: 'Total', st_area: 0, st_perimeter: 0, half: 0}

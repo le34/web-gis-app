@@ -1,74 +1,122 @@
 <template>
-  <v-container fluid>
-    <v-card>
-      <v-card-title>
-        <h6>Bruger</h6>
-      </v-card-title>
-      <v-card-text>
-        <v-text-field v-model="email" required name="email" label="Email" id="email"></v-text-field>
-        <v-select required item-text="name" item-value="id" :items="$store.state.clients.items" v-model="client" label="Klient"></v-select>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer/>
-        <v-btn primary @click.native.stop="alert = true">Slet</v-btn>
-      </v-card-actions>
-    </v-card>
-    <v-dialog v-model="alert" lazy absolute>         
+  <v-content>
+    <v-toolbar app fixed prominent dark color="secondary">
+      <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
+      <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer" />
+      <v-toolbar-title>{{title}}</v-toolbar-title>
+    </v-toolbar>
+    <v-container fluid>
       <v-card>
         <v-card-title>
-          <div class="headline">slet bruger?</div>
+          <h6>User</h6>
         </v-card-title>
-        <v-card-text>Er du sikker på at du vil slette brugeren?</v-card-text>
+        <v-card-text>
+          <v-text-field v-model="email" required name="email" label="Email" id="email"></v-text-field>
+          <v-select required item-text="name" item-value="id" :items="companies" v-model="companyId" label="Company"></v-select>
+          <v-select required item-text="name" item-value="id" :items="roles" v-model="roleId" label="Role"></v-select>
+        </v-card-text>
         <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn class="green--text darken-1" flat="flat" @click.native="alert = false">Nej</v-btn>
-          <v-btn class="green--text darken-1" flat="flat" @click.native="remove()">Ja</v-btn>
+          <v-spacer/>
+          <v-btn color="primary" @click.stop="dialogDelete = true">Delete</v-btn>
         </v-card-actions>
       </v-card>
-    </v-dialog>
-  </v-container>
+      <v-dialog v-model="dialogDelete" persistent max-width="500">
+        <v-card>
+          <v-card-title>
+            <div class="headline">Delete User</div>
+          </v-card-title>
+          <v-card-text>Delete User?</v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" flat="flat" @click.native="dialogDelete = false">Cancel</v-btn>
+            <v-btn color="primary" flat="flat" @click.native="deleteUser()">Delete</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </v-container>
+  </v-content>
 </template>
 <script>
+import { mapGetters } from 'vuex'
 export default {
+  head () {
+    return {
+      title: this.title
+    }
+  },
   data () {
     return {
-      alert: false
+      title: 'User',
+      dialogDelete: false
     }
   },
   methods: {
-    remove (item) {
-      this.$store.dispatch('users/remove', this.form).then(() => {
-        this.$router.go(-1)
+    deleteUser (item) {
+      this.$store.dispatch('users/remove', this.$route.params.id).then(() => {
+        this.$router.push({ name: 'admin-users' })
       })
     }
   },
   computed: {
+    ...mapGetters('users', {
+      getUser: 'get'
+    }),
+    ...mapGetters('companies', {
+      companies: 'list'
+    }),
+    ...mapGetters('roles', {
+      roles: 'list'
+    }),
+    drawer: {
+      get () {
+        return this.$store.state.drawer
+      },
+      set (value) {
+        this.$store.commit('drawer', value)
+      }
+    },
     email: {
       get () {
-        return this.form.email
+        return this.user ? this.user.email : null
       },
       set (e) {
-        this.form.email = e
-        this.$store.dispatch('users/edit', this.form)
+        this.$store.dispatch('users/patch', [
+          this.$route.params.id,
+          { email: e }
+        ])
       }
     },
-    client: {
+    companyId: {
       get () {
-        return this.form.client
+        return this.user ? this.user.companyId : null
       },
       set (e) {
-        this.form.client = e
-        this.$store.dispatch('users/edit', this.form)
+        this.$store.dispatch('users/patch', [
+          this.$route.params.id,
+          { companyId: e }
+        ])
       }
     },
-    form () {
-      const newItem = this.$store.state.users.items.find(item => item.id === this.$route.params.id) || {}
-      return { ...newItem }
+    roleId: {
+      get () {
+        return this.user ? this.user.roleId : null
+      },
+      set (e) {
+        this.$store.dispatch('users/patch', [
+          this.$route.params.id,
+          { roleId: e }
+        ])
+      }
+    },
+    user () {
+      return this.getUser(this.$route.params.id)
     }
   },
-  watch: {
-  },
+  watch: {},
   mounted () {
+    this.$store.dispatch('users/get', this.$route.params.id)
+    this.$store.dispatch('companies/find')
+    this.$store.dispatch('roles/find')
   }
 }
 </script>

@@ -23,9 +23,6 @@
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-company-id', params: { id: $route.params.id } }">
-        <v-icon>chevron_left</v-icon>
-      </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon v-if="!showSearch && $vuetify.breakpoint.xsOnly" @click.stop="showSearch=!showSearch;focus()">
@@ -34,7 +31,7 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="projects" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="projects" :search="search" hide-actions :custom-filter="customSearch">
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
@@ -42,10 +39,11 @@
         <td>
           <v-btn icon @click.stop="edit(props.item)"><v-icon>edit</v-icon></v-btn>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-company-id-project-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="$router.push({ name: 'admin-company-id-project-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.public }}</td>        
-        <td @click.stop="$router.push({ name: 'admin-company-id-project-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.createdAt }}</td>          
-        <td @click.stop="$router.push({ name: 'map-companyId-projectId', params: { companyId: $route.params.id, projectId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>      
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-companies-id-projects', params: { id: props.item.companyId } })" class="text-xs-left select">{{ props.item['company.name'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.public }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>          
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.userId } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -56,7 +54,8 @@
           </v-card-title>
           <v-card-text>
             <v-text-field ref="name" :rules="nameRules" required v-model="name" name="name" label="Name" id="name"></v-text-field>
-            <v-checkbox label="Public?" v-model="public"></v-checkbox>
+            <v-select required :rules="companyRules" v-model="companyId" item-text="name" item-value="id" :items="companies" label="Select company"></v-select>
+            <v-checkbox label="Public?" v-model="isPublic"></v-checkbox>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -74,6 +73,7 @@
           </v-card-title>
           <v-card-text>
             <v-text-field ref="name" :rules="nameRules" required v-model="itemEdit.name" name="name" label="Name" id="name"></v-text-field>
+            <v-select required :rules="companyRules" v-model="itemEdit.companyId" item-text="name" item-value="id" :items="companies" label="Select company"></v-select>
             <v-checkbox label="Public?" v-model="itemEdit.public"></v-checkbox>
           </v-card-text>
           <v-card-actions>
@@ -109,13 +109,16 @@ export default {
   },
   data () {
     return {
+      title: 'Projects',
       name: null,
-      public: false,
+      companyId: null,
+      isPublic: false,
       valid: false,
       validEdit: false,
       fab: false,
       showSearch: false,
-      nameRules: [v => !!v || 'Company is required'],
+      nameRules: [v => !!v || 'Name is required'],
+      companyRules: [(v) => !!v || 'Company is required'],
       dialog: false,
       dialogDelete: false,
       dialogEdit: false,
@@ -135,33 +138,51 @@ export default {
           value: 'name'
         },
         {
+          text: 'Company',
+          align: 'left',
+          sortable: true,
+          value: 'company.name'
+        },
+        {
           text: 'Public',
           align: 'left',
           sortable: true,
           value: 'public'
         },
         {
-          text: 'Date',
+          text: 'Updated At',
           align: 'left',
           sortable: true,
-          value: 'createdAt'
+          value: 'updatedAt'
         },
         {
-          text: 'Show',
+          text: 'Updated By',
           align: 'left',
-          sortable: false
+          sortable: true,
+          value: 'user.email'
         }
       ]
     }
   },
+  filters: {
+    date (value) {
+      return (new Date(value)).toLocaleString()
+    }
+  },
   methods: {
+    customSearch (items, search, filter, headers) {
+      search = search.toString().toLowerCase()
+      if (search.trim() === '') return items
+      const props = headers.map(h => h.value)
+      return items.filter(item => props.some(prop => filter(item[prop], search)))
+    },
     edit (item) {
       this.itemEdit = { ...item }
       this.dialogEdit = true
     },
     patch () {
       if (this.validEdit) {
-        this.$store.dispatch('projects/patch', [this.itemEdit.id, { name: this.itemEdit.name, public: this.itemEdit.public }]).then(res => {
+        this.$store.dispatch('projects/patch', [this.itemEdit.id, { name: this.itemEdit.name, public: this.itemEdit.public, companyId: this.itemEdit.companyId }]).then(res => {
           this.itemEdit = {}
           this.$refs.formEdit.reset()
           this.dialogEdit = false
@@ -198,12 +219,10 @@ export default {
         this.$store
           .dispatch('projects/create', {
             name: this.name,
-            public: this.public,
-            companyId: this.$route.params.id
+            public: this.isPublic,
+            companyId: this.companyId
           })
           .then(res => {
-            this.name = null
-            this.public = false
             this.$refs.form.reset()
             this.dialog = false
           })
@@ -216,19 +235,11 @@ export default {
   },
   computed: {
     ...mapGetters('projects', {
-      projectsRaw: 'list'
+      projects: 'list'
     }),
-    ...mapGetters('company', {
-      getCompany: 'get'
+    ...mapGetters('companies', {
+      companies: 'list'
     }),
-    company () {
-      return this.getCompany(this.$route.params.id)
-    },
-    projects () {
-      return this.projectsRaw.filter(item => {
-        return item.companyId === this.$route.params.id
-      })
-    },
     drawer: {
       get () {
         return this.$store.state.drawer
@@ -236,23 +247,12 @@ export default {
       set (value) {
         this.$store.commit('drawer', value)
       }
-    },
-    title () {
-      return this.company ? this.company.data.name + ' - Projects' : 'Projetcs'
     }
   },
   watch: {},
   mounted () {
-    this.$store.dispatch('projects/find', {
-      query: {
-        companyId: this.$route.params.id
-      }
-    })
-    this.$store.dispatch('company/find', {
-      query: {
-        id: this.$route.params.id
-      }
-    })
+    this.$store.dispatch('projects/find')
+    this.$store.dispatch('companies/find')
   }
 }
 </script>

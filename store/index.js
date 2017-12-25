@@ -7,12 +7,15 @@ const { service, auth } = feathersVuex(feathersClient, { idField: 'id' })
 export const plugins = [
   service('/users'),
   service('/roles'),
-  service('/company'),
+  service('/companies'),
   service('/cvr'),
   service('/files'),
-  service('/data'),
+  service('/datasources'),
   service('/projects'),
+  service('/clients'),
   service('/totals'),
+  service('/db'),
+  service('/extent'),
   service('/authManagement'),
   auth({
     userService: 'users'

@@ -1,5 +1,5 @@
 <template>
-  <v-app :dark="dark">
+  <v-app :dark="$store.state.dark">
     <v-navigation-drawer fixed app v-model="drawer">
       <v-toolbar flat class="transparent">
         <v-list class="pa-0">
@@ -143,20 +143,22 @@
               <v-icon>zoom_out_map</v-icon>
             </v-list-tile-action>
           </v-list-tile>
-          <v-list-tile class="legend" v-for="layer in group.layers" v-bind:key="layer.id">
+          <v-list-tile class="legend" v-for="layer in group.groups" v-bind:key="layer.id">
             <v-list-tile-action>
-              <v-switch v-model="layer.visible" @click.stop="hideLayer(group, layer)"></v-switch>
+              <v-tooltip right>
+                <v-switch slot="activator" v-model="layer.visible" @click.stop="hideLayer(group, layer)"></v-switch>
+              <span>{{layer.name}}</span></v-tooltip>
             </v-list-tile-action>
             <v-list-tile-content>
-              <v-list-tile-title>{{layer.name}}</v-list-tile-title>
+              <v-list-tile-title >{{layer.name}}</v-list-tile-title>
             </v-list-tile-content>
             <v-list-tile-action>
-              <svg width="24" height="24" v-if="layer.type!=='raster'">
+              <svg width="24" height="24" v-if="layer.source!==1">
                 <line v-if="layer.type === 'line'" x1="0" y1="12" x2="24" y2="12" :style="'stroke:' + layer.paint['line-color'] + ';stroke-width:' + layer.paint['line-width']"></line>
                 <circle v-if="layer.type === 'circle'" cx="12" cy="12" r="8" :stroke="layer.paint['circle-stroke-color']" :stroke-width="layer.paint['circle-stroke-width']" :fill="layer.paint['circle-color']" :fill-opacity="layer.paint['circle-opacity']" />
                 <rect v-if="layer.type === 'fill'" width="24" height="24" :stroke="layer.paint['fill-outline-color']" stroke-width="2" :fill="layer.paint['fill-color']" :fill-opacity="layer.paint['fill-opacity']" />
               </svg>
-              <v-btn icon v-if="layer.type==='raster'" @click="showRasterDialog(layer)"><v-icon>adjust</v-icon></v-btn>
+              <v-btn icon v-if="layer.source===1" @click="showRasterDialog(layer)"><v-icon>adjust</v-icon></v-btn>
             </v-list-tile-action>
           </v-list-tile>
         </v-list-group>
@@ -188,6 +190,7 @@
 </template>
 <script>
 import { mapGetters } from 'vuex'
+import AWS from '~/components/AWS'
 import Measure from '~/components/Measure'
 import Totals from '~/components/Totals'
 import Information from '~/components/Information'
@@ -204,6 +207,7 @@ export default {
       contrastLocal: 0,
       saturationLocal: 0,
       tools: [
+        { name: 'Adressesøgning', active: true, component: AWS },
         { name: 'Information', active: true, component: Information },
         { name: 'Mål afstand', active: false, component: Measure },
         { name: 'Objektberegning', active: false, component: Totals }
@@ -219,13 +223,13 @@ export default {
       let group = { ...item }
       group.visible = !group.visible
       group.collapse = group.visible ? group.collapse : false
-      let layers = [...group.layers]
+      let layers = [...group.groups]
       layers.forEach((item, index) => {
         let layer = { ...item }
         layer.visible = group.visible
         layers[index] = layer
       })
-      group.layers = layers
+      group.groups = layers
       this.$store.commit('layers/editGroup', group)
     },
     hideLayer (group, item) {
@@ -242,7 +246,7 @@ export default {
       this.$store.commit('layers/editGroup', group)
     },
     showRasterDialog (layer) {
-      this.currentLayer = layer
+      this.currentLayer = layer.layers[0]
       const value = this.map.getPaintProperty(this.currentLayer.id, 'raster-opacity')
       this.opacityLocal = value ? value * 100 : 100
       const valueContrast = this.map.getPaintProperty(this.currentLayer.id, 'raster-contrast')
@@ -330,7 +334,7 @@ export default {
           this.$store.commit('layers/light', true)
           this.$store.commit('layers/dark', false)
           this.$store.commit('layers/satellite', false)
-          this.dark = false
+          this.$store.commit('dark', false)
         }
       }
     },
@@ -343,7 +347,7 @@ export default {
           this.$store.commit('layers/light', false)
           this.$store.commit('layers/dark', true)
           this.$store.commit('layers/satellite', false)
-          this.dark = true
+          this.$store.commit('dark', true)
         }
       }
     },
@@ -356,7 +360,7 @@ export default {
           this.$store.commit('layers/light', false)
           this.$store.commit('layers/dark', false)
           this.$store.commit('layers/satellite', true)
-          this.dark = true
+          this.$store.commit('dark', true)
         }
       }
     },
@@ -365,48 +369,54 @@ export default {
         return this.$store.state.dark
       },
       set (value) {
+        /*
         let _groups = [...this.groups]
         _groups.forEach((group, i) => {
           let _group = { ...group }
-          let _layers = [..._group.layers]
-          _layers.forEach((item, index) => {
-            let layer = { ...item }
-            if (layer.hasOwnProperty('paint')) {
-              let _paint = { ...layer.paint }
-              if (value) {
-                if (
-                  _paint.hasOwnProperty('line-color') &&
+          let _subgroups = [..._group.groups]
+          _subgroups.forEach((subgroup, i) => {
+            let _layers = [...subgroup.layers]
+            _layers.forEach((item, index) => {
+              let layer = { ...item }
+              if (layer.hasOwnProperty('paint')) {
+                let _paint = { ...layer.paint }
+                if (value) {
+                  if (
+                    _paint.hasOwnProperty('line-color') &&
                   _paint['line-color'] === '#000000'
-                ) {
-                  _paint['line-color'] = '#ffffff'
-                } else if (
-                  _paint.hasOwnProperty('circle-color') &&
+                  ) {
+                    _paint['line-color'] = '#ffffff'
+                  } else if (
+                    _paint.hasOwnProperty('circle-color') &&
                   _paint['circle-color'] === '#000000'
-                ) {
-                  _paint['circle-color'] = '#ffffff'
-                }
-              } else {
-                if (
-                  _paint.hasOwnProperty('line-color') &&
+                  ) {
+                    _paint['circle-color'] = '#ffffff'
+                  }
+                } else {
+                  if (
+                    _paint.hasOwnProperty('line-color') &&
                   _paint['line-color'] === '#ffffff'
-                ) {
-                  _paint['line-color'] = '#000000'
-                } else if (
-                  _paint.hasOwnProperty('circle-color') &&
+                  ) {
+                    _paint['line-color'] = '#000000'
+                  } else if (
+                    _paint.hasOwnProperty('circle-color') &&
                   _paint['circle-color'] === '#ffffff'
-                ) {
-                  _paint['circle-color'] = '#000000'
+                  ) {
+                    _paint['circle-color'] = '#000000'
+                  }
                 }
+                layer.paint = _paint
               }
-              layer.paint = _paint
-            }
-            _layers[index] = layer
+              _layers[index] = layer
+            })
+            subgroup.layers = _layers
           })
-          _group.layers = _layers
+          _group.groups = _subgroups
           _groups[i] = _group
         })
         this.$store.commit('dark', value)
         this.$store.commit('layers/items', _groups)
+        */
       }
     }
   },

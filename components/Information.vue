@@ -138,7 +138,7 @@ export default {
           return group.id === item.layer.source
         })
         if (group !== undefined) {
-          const layer = group.layers.find(layer => {
+          const layer = group.groups.find(layer => {
             return layer.id === item.layer.id
           })
           if (layer !== undefined) {

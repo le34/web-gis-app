@@ -13,7 +13,7 @@
           <span>Create</span>
         </v-tooltip>
         <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDeleteUsers = true">
+          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogRemove = true">
             <v-icon>delete</v-icon>
           </v-btn>
           <span>Delete</span>
@@ -31,45 +31,41 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="users" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="clients" :search="search" hide-actions :custom-filter="customSearch">
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({name: 'admin-users-id', params: {id: props.item.id}})" class="text-xs-left select">{{ props.item.email }}</td>
-        <td class="text-xs-left">{{ props.item.role }}</td>
-        <td class="text-xs-left">{{ props.item['company.name'] }}</td>
+        <td @click.stop="edit(props.item)" class="text-xs-left select">{{ props.item['company.name'] }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Create new user</div>
+            <div class="headline">Add Client</div>
           </v-card-title>
           <v-card-text>
-            <v-text-field ref="email" :rules="emailRules" required v-model="email" name="email" label="Email" id="email"></v-text-field>
-            <v-select :rules="roleRules" required item-text="role" item-value="role" :items="roles" v-model="role" label="Role"></v-select>
-            <v-select :rules="companyRules" required item-text="name" item-value="id" :items="companies" v-model="companyId" label="Company"></v-select>
+            <v-select required :rules="companyRules" v-model="companyId" item-text="name" item-value="id" :items="companies" label="Company"></v-select>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="primary" flat @click.native="dialog = false">Cancel</v-btn>
+            <v-btn color="primary" flat @click.native="dialog=false">Cancel</v-btn>
             <v-btn type="submit" color="primary" @click.stop="save()">Save</v-btn>
           </v-card-actions>
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogDeleteUsers" persistent max-width="500">
+    <v-dialog v-model="dialogRemove" persistent max-width="500">
       <v-card>
         <v-card-title>
-          <div class="headline">Delete user</div>
+          <div class="headline">Remove Client</div>
         </v-card-title>
-        <v-card-text>Delete selected users?</v-card-text>
+        <v-card-text>Remove selected clients?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" flat="flat" @click.native="dialogDeleteUsers = false">Cancel</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="deleteUsers()">Delete</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Cancel</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="remove()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -85,58 +81,40 @@ export default {
   },
   data () {
     return {
-      title: 'Users',
       valid: false,
       fab: false,
       showSearch: false,
-      role: null,
-      email: null,
       companyId: null,
-      emailRules: [
-        (v) => !!v || 'Email is required',
-        (v) => /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v) || 'E-mail must be valid'
-      ],
       companyRules: [(v) => !!v || 'Company is required'],
-      roleRules: [(v) => !!v || 'Role is required'],
       dialog: false,
-      dialogDeleteUsers: false,
+      dialogRemove: false,
       search: '',
       selected: [],
       headers: [
         {
-          text: 'Email',
+          text: 'Name',
           align: 'left',
           sortable: true,
-          value: 'email'
-        },
-        {
-          text: 'Role',
-          align: 'left',
-          sortable: true,
-          value: 'role'
-        },
-        {
-          text: 'Company',
-          align: 'left',
-          sortable: true,
-          value: 'company'
+          value: 'company.name'
         }
       ]
     }
   },
   methods: {
-    focus () {
-      this.$nextTick(() => this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus())
+    customSearch (items, search, filter, headers) {
+      search = search.toString().toLowerCase()
+      if (search.trim() === '') return items
+      const props = headers.map(h => h.value)
+      return items.filter(item => props.some(prop => filter(item[prop], search)))
     },
     create () {
       this.dialog = true
-      this.$nextTick(() => this.$refs.email.$el.getElementsByTagName('input')[0].focus())
     },
-    deleteUsers () {
-      this.dialogDeleteUsers = true
-      this.selected.forEach(user => {
-        this.$store.dispatch('users/remove', user.id).then(res => {
-          this.dialogDeleteUsers = false
+    remove () {
+      this.dialogRemove = true
+      this.selected.forEach(item => {
+        this.$store.dispatch('clients/remove', item.id).then(res => {
+          this.dialogRemove = false
         }).catch(err => {
           console.log(err)
         })
@@ -144,10 +122,10 @@ export default {
     },
     save () {
       if (this.valid) {
-        this.$store.dispatch('users/create', { email: this.email, role: this.role, companyId: this.companyId }).then((res) => {
-          this.email = null
-          this.role = null
-          this.companyId = null
+        this.$store.dispatch('clients/create', {
+          companyId: this.companyId,
+          projectId: this.$route.params.id
+        }).then((res) => {
           this.dialog = false
           this.$refs.form.reset()
         }).catch(err => {
@@ -155,18 +133,40 @@ export default {
           this.message = err
         })
       }
+    },
+    edit (item) {
+      this.$router.push({ name: 'admin-companies-id', params: { id: item.id } })
     }
   },
   computed: {
-    ...mapGetters('users', {
-      users: 'list'
+    ...mapGetters('clients', {
+      findClients: 'find'
+    }),
+    ...mapGetters('projects', {
+      getProject: 'get'
     }),
     ...mapGetters('companies', {
-      companies: 'list'
+      companiesRaw: 'list'
     }),
-    ...mapGetters('roles', {
-      roles: 'list'
-    }),
+    companies () {
+      return this.companiesRaw.filter(item => {
+        return this.project && this.project.companyId !== this.item.id && this.clients && this.clients.every(client => {
+          return client.id !== item.id
+        })
+      })
+    },
+    title () {
+      return `${this.project ? this.project.name : ''} - Clients`
+    },
+    project () {
+      return this.getProject(this.$route.params.id)
+    },
+    clientsRaw () {
+      return this.findClients({ query: { projectId: this.$route.params.id } })
+    },
+    clients () {
+      return this.clientsRaw ? this.clientsRaw.data : []
+    },
     drawer: {
       get () {
         return this.$store.state.drawer
@@ -179,9 +179,9 @@ export default {
   watch: {
   },
   mounted () {
-    this.$store.dispatch('users/find')
+    this.$store.dispatch('projects/get', this.$route.params.id)
+    this.$store.dispatch('clients/find', { query: { projectId: this.$route.params.id } })
     this.$store.dispatch('companies/find')
-    this.$store.dispatch('roles/find')
   }
 }
 </script>

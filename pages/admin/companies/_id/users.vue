@@ -10,19 +10,22 @@
           <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
             <v-icon>add</v-icon>
           </v-btn>
-          <span>Create</span>
+          <span>Opret ny</span>
         </v-tooltip>
         <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogRemove = true">
+          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDeleteUsers = true">
             <v-icon>delete</v-icon>
           </v-btn>
-          <span>Delete</span>
+          <span>Slet valgte</span>
         </v-tooltip>
       </v-speed-dial>
     </v-fab-transition>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
+      <v-btn icon :to="{ name: 'admin-companies-id', params: { id: $route.params.id } }">
+        <v-icon>chevron_left</v-icon>
+      </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon v-if="!showSearch && $vuetify.breakpoint.xsOnly" @click.stop="showSearch=!showSearch;focus()">
@@ -31,43 +34,44 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="company" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="users" :search="search" hide-actions>
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="edit(props.item)" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="editClient(props.item)" class="text-xs-right select">{{ props.item.cvrno }}</td>
+        <td @click.stop="$router.push({name: 'admin-users-id', params: {id: props.item.id}})" class="text-xs-left select">{{ props.item.email }}</td>
+        <td class="text-xs-left select">{{ props.item.role }}</td>
+        <td @click.stop="editCompany(props.item)" class="text-xs-left select">{{ props.item['company.data'].name }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Create new company</div>
+            <div class="headline">Create new user</div>
           </v-card-title>
           <v-card-text>
-            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete required item-text="display" :items="items" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
-            <v-text-field readonly v-model="cvrNummer" label="CVR"></v-text-field>            
+            <v-text-field ref="email" :rules="emailRules" required v-model="email" name="email" label="Email" id="email"></v-text-field>
+            <v-select :rules="rolesRules" required item-text="role" item-value="role" :items="roles" v-model="role" label="Role"></v-select>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="primary" flat @click.native="dialog=false">Cancel</v-btn>
+            <v-btn color="primary" flat @click.native="dialog = false">Cancel</v-btn>
             <v-btn type="submit" color="primary" @click.stop="save()">Save</v-btn>
           </v-card-actions>
         </v-card>
       </v-form>
     </v-dialog>
-    <v-dialog v-model="dialogRemove" persistent max-width="500">
+    <v-dialog v-model="dialogDeleteUsers" persistent max-width="500">
       <v-card>
         <v-card-title>
-          <div class="headline">Delete company</div>
+          <div class="headline">Delete user</div>
         </v-card-title>
-        <v-card-text>Delete selected company?</v-card-text>
+        <v-card-text>Delete selected users?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Cancel</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="remove()">Delete</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="dialogDeleteUsers = false">Cancel</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="deleteUsers()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -76,7 +80,6 @@
 <script>
 import { mapGetters } from 'vuex'
 export default {
-  layout: 'company',
   head () {
     return {
       title: this.title
@@ -84,39 +87,39 @@ export default {
   },
   data () {
     return {
-      title: 'Company',
       valid: false,
       fab: false,
       showSearch: false,
-      breadcrumbs: [
-        {
-          text: 'Admin',
-          disabled: false,
-          href: '/admin'
-        },
-        {
-          text: 'Users',
-          disabled: true,
-          href: '/admin/users'
-        }
+      role: null,
+      email: null,
+      emailRules: [
+        (v) => !!v || 'Email er påkrævet',
+        (v) => /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v) || 'E-mail must be valid'
       ],
-      form: {},
-      items: [],
-      loading: false,
-      selectedCVR: null,
-      nameRules: [() => this.selectedCVR !== null || 'Select a company from the list'],
+      rolesRules: [(v) => !!v || 'Role is required'],
       dialog: false,
-      dialogRemove: false,
+      dialogDeleteUsers: false,
       search: '',
       selected: [],
       headers: [
         {
-          text: 'Name',
+          text: 'Email',
           align: 'left',
           sortable: true,
-          value: 'name'
+          value: 'email'
         },
-        { text: 'CVR', value: 'cvrno' }
+        {
+          text: 'Role',
+          align: 'left',
+          sortable: true,
+          value: 'role'
+        },
+        {
+          text: 'Company',
+          align: 'left',
+          sortable: true,
+          value: 'company'
+        }
       ]
     }
   },
@@ -126,13 +129,13 @@ export default {
     },
     create () {
       this.dialog = true
-      this.$nextTick(() => this.$refs.focus.$el.getElementsByTagName('input')[0].focus())
+      this.$nextTick(() => this.$refs.email.$el.getElementsByTagName('input')[0].focus())
     },
-    remove () {
-      this.dialogRemove = true
-      this.selected.forEach(item => {
-        this.$store.dispatch('company/remove', item.id).then(res => {
-          this.dialogRemove = false
+    deleteUsers () {
+      this.dialogDeleteUsers = true
+      this.selected.forEach(user => {
+        this.$store.dispatch('users/remove', user.id).then(res => {
+          this.dialogDeleteUsers = false
         }).catch(err => {
           console.log(err)
         })
@@ -140,15 +143,9 @@ export default {
     },
     save () {
       if (this.valid) {
-        this.$store.dispatch('company/create', {
-          data: {
-            name: this.selectedCVR.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn,
-            cvrno: this.selectedCVR.Vrvirksomhed.cvrNummer
-          }
-        }).then((res) => {
+        this.$store.dispatch('users/create', { email: this.email, role: this.role, companyId: this.$route.params.id }).then((res) => {
           this.email = null
           this.role = null
-          this.clientId = null
           this.dialog = false
           this.$refs.form.reset()
         }).catch(err => {
@@ -156,25 +153,23 @@ export default {
           this.message = err
         })
       }
-    },
-    edit (item) {
-      this.$router.push({ name: 'admin-company-id', params: { id: item.id } })
     }
   },
   computed: {
     ...mapGetters('users', {
-      users: 'list'
+      usersRaw: 'list'
     }),
-    ...mapGetters('company', {
-      companyRaw: 'list'
+    ...mapGetters('companies', {
+      getCompany: 'get'
     }),
     ...mapGetters('roles', {
       roles: 'list'
     }),
     company () {
-      return this.companyRaw.map(item => {
-        return { id: item.id, ...item.data }
-      })
+      return this.getCompany(this.$route.params.id)
+    },
+    title () {
+      return this.company ? this.company.data.name + ' - Users' : 'Users'
     },
     drawer: {
       get () {
@@ -184,43 +179,17 @@ export default {
         this.$store.commit('drawer', value)
       }
     },
-    cvrNummer () {
-      return this.selectedCVR ? this.selectedCVR.Vrvirksomhed.cvrNummer : null
-    },
-    cvrSearch: {
-      get () {
-        return null
-      },
-      set (value) {
-        if (value) {
-          console.log(value)
-          this.loading = true
-          this.$store.dispatch('cvr/find', {
-            query: {
-              $select: [
-                'Vrvirksomhed.cvrNummer',
-                'Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn'
-              ],
-              $sqs: {
-                $fields: ['Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn', 'Vrvirksomhed.cvrNummer'],
-                $query: value || ''
-              }
-            }
-          }).then((res) => {
-            this.items = res.map(item => {
-              return { display: '(' + item.Vrvirksomhed.cvrNummer + ') ' + item.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn, ...item }
-            })
-            this.loading = false
-          })
-        }
-      }
+    users () {
+      return this.usersRaw.filter(item => {
+        return item.companyId === this.$route.params.id
+      })
     }
   },
   watch: {
   },
   mounted () {
-    this.$store.dispatch('users/find')
-    this.$store.dispatch('company/find')
+    this.$store.dispatch('users/find', { query: { companyId: this.$route.params.id } })
+    this.$store.dispatch('companies/find', { query: { id: this.$route.params.id } })
     this.$store.dispatch('roles/find')
   }
 }
