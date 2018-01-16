@@ -47,7 +47,7 @@
             <div class="headline">Create new company</div>
           </v-card-title>
           <v-card-text>
-            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete required item-text="display" :items="items" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
+            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" :loading="loading" autocomplete item-text="display" :items="items" :search-input.sync="cvrSearch" label="Søg navn eller CVRnr"></v-select>
             <v-text-field readonly v-model="cvrNummer" label="CVR"></v-text-field>            
           </v-card-text>
           <v-card-actions>
@@ -89,6 +89,7 @@ export default {
       showSearch: false,
       form: {},
       items: [],
+      name: null,
       loading: false,
       selectedCVR: null,
       nameRules: [() => this.selectedCVR !== null || 'Select a company from the list'],
@@ -126,18 +127,16 @@ export default {
       })
     },
     save () {
-      if (this.valid) {
-        this.$store.dispatch('companies/create', {
-          name: this.selectedCVR.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn,
-          cvr: this.selectedCVR.Vrvirksomhed.cvrNummer
-        }).then((res) => {
-          this.dialog = false
-          this.$refs.form.reset()
-        }).catch(err => {
-          console.log('error', err)
-          this.message = err
-        })
-      }
+      this.$store.dispatch('companies/create', {
+        name: this.selectedCVR ? this.selectedCVR.Vrvirksomhed.virksomhedMetadata.nyesteNavn.navn : this.name,
+        cvr: this.selectedCVR ? this.selectedCVR.Vrvirksomhed.cvrNummer : ''
+      }).then((res) => {
+        this.dialog = false
+        this.$refs.form.reset()
+      }).catch(err => {
+        console.log('error', err)
+        this.message = err
+      })
     },
     edit (item) {
       this.$router.push({ name: 'admin-companies-id', params: { id: item.id } })
@@ -168,6 +167,7 @@ export default {
       },
       set (value) {
         if (value) {
+          this.name = value
           this.loading = true
           this.$store.dispatch('cvr/find', {
             query: {

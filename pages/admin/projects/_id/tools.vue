@@ -16,16 +16,13 @@
           <v-btn fab dark small color="red" slot="activator" @click.stop="dialogRemove = true">
             <v-icon>delete</v-icon>
           </v-btn>
-          <span>Remove</span>
+          <span>Delete</span>
         </v-tooltip>
       </v-speed-dial>
     </v-fab-transition>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-companies-id', params: { id: $route.params.id } }">
-        <v-icon>chevron_left</v-icon>
-      </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon v-if="!showSearch && $vuetify.breakpoint.xsOnly" @click.stop="showSearch=!showSearch;focus()">
@@ -34,23 +31,27 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="clients" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="projectstools" :search="search" hide-actions :custom-filter="customSearch">
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-companies-id-project', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="$router.push({ name: 'admin-companies-id-project', params: { id: props.item.id } })" class="text-xs-right select">{{ props.item.cvrno }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projectstools-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.priority }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projectstools-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projectstools-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.active }}</td>
+        <td @click.stop="$router.push({ name: 'admin-tools-id', params: { id: props.item.toolId } })" class="text-xs-left select">{{ props.item['tool.name'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projectstools-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.userId } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
       <v-form v-model="valid" ref="form" @submit.prevent>
         <v-card>
           <v-card-title>
-            <div class="headline">Add Client</div>
+            <div class="headline">Add Tool</div>
           </v-card-title>
           <v-card-text>
-            <v-select :rules="nameRules" ref="focus" clearable v-model="selectedCVR" required item-text="data.name" :items="selects" label="Select Company"></v-select>
+            <v-select required :rules="toolRules" v-model="tool" item-text="name" :items="tools" label="Tool"></v-select>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -63,13 +64,13 @@
     <v-dialog v-model="dialogRemove" persistent max-width="500">
       <v-card>
         <v-card-title>
-          <div class="headline">Remove Clients</div>
+          <div class="headline">Remove Client</div>
         </v-card-title>
         <v-card-text>Remove selected clients?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="primary" flat="flat" @click.native="dialogRemove = false">Cancel</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="remove()">Remove</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="remove()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -88,81 +89,111 @@ export default {
       valid: false,
       fab: false,
       showSearch: false,
-      form: {},
-      items: [],
-      loading: false,
-      selectedCVR: null,
-      nameRules: [() => this.selectedCVR !== null || 'Select a company from the list'],
+      tool: null,
+      toolRules: [(v) => !!v || 'Tool is required'],
       dialog: false,
       dialogRemove: false,
       search: '',
       selected: [],
       headers: [
         {
+          text: 'Priority',
+          align: 'left',
+          sortable: true,
+          value: 'priority'
+        },
+        {
           text: 'Name',
           align: 'left',
           sortable: true,
           value: 'name'
         },
-        { text: 'CVR', value: 'cvrno' }
+        {
+          text: 'Active',
+          align: 'left',
+          sortable: true,
+          value: 'active'
+        },
+        {
+          text: 'Tool',
+          align: 'left',
+          sortable: true,
+          value: 'tool.name'
+        },
+        {
+          text: 'Updated At',
+          align: 'left',
+          sortable: true,
+          value: 'updatedAt'
+        },
+        {
+          text: 'Updated By',
+          align: 'left',
+          sortable: true,
+          value: 'user.email'
+        }
       ]
     }
   },
+  filters: {
+    date (value) {
+      return (new Date(value)).toLocaleString()
+    }
+  },
   methods: {
-    focus () {
-      this.$nextTick(() => this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus())
+    customSearch (items, search, filter, headers) {
+      search = search.toString().toLowerCase()
+      if (search.trim() === '') return items
+      const props = headers.map(h => h.value)
+      return items.filter(item => props.some(prop => filter(item[prop], search)))
     },
     create () {
       this.dialog = true
-      this.$nextTick(() => this.$refs.focus.$el.getElementsByTagName('input')[0].focus())
     },
     remove () {
       this.dialogRemove = true
-      const keys = this.selected.map(item => item.id)
-      let data = { ...this.company.data }
-      data.clients = this.clients.filter(item => keys.indexOf(item.id) === -1).map(item => item.id)
-      this.$store.dispatch('company/patch', [this.company.id, { data }]).then(res => {
-        console.log(res)
-        this.dialogRemove = false
-      }).catch(err => {
-        console.log('error', err)
+      this.selected.forEach(item => {
+        this.$store.dispatch('projects-tools/remove', item.id).then(res => {
+          this.dialogRemove = false
+        }).catch(err => {
+          console.log(err)
+        })
       })
     },
     save () {
       if (this.valid) {
-        let data = { ...this.company.data }
-        data.clients = data.clients || []
-        data.clients = [ this.selectedCVR.id, ...data.clients ]
-        this.$store.dispatch('company/patch', [this.company.id, { data }]).then(res => {
-          console.log(res)
+        this.$store.dispatch('projects-tools/create', {
+          name: this.tool.name,
+          toolId: this.tool.id,
+          projectId: this.$route.params.id
+        }).then((res) => {
           this.dialog = false
-          this.selectedCVR = null
           this.$refs.form.reset()
         }).catch(err => {
           console.log('error', err)
+          this.message = err
         })
       }
     }
   },
   computed: {
-    ...mapGetters('company', {
-      companyRaw: 'list',
-      getCompany: 'get'
+    ...mapGetters('tools', {
+      tools: 'list'
     }),
-    company () {
-      return this.getCompany(this.$route.params.id)
+    ...mapGetters('projects-tools', {
+      findProjectsTools: 'find'
+    }),
+    ...mapGetters('projects', {
+      getProject: 'get'
+    }),
+    title () {
+      return `${this.project ? this.project.name : ''} - Tools`
     },
-    clients () {
-      return this.companyRaw.filter(item => {
-        return this.company && this.company.data && this.company.data.clients && this.company.data.clients.indexOf(item.id) !== -1
-      }).map(item => {
-        return { id: item.id, ...item.data }
-      })
+    projectstools () {
+      return this.findProjectsTools({ query: { projectId: this.$route.params.id } }).data
     },
-    selects () {
-      return this.companyRaw.filter(item => {
-        return !this.company || !this.company.data.clients || this.company.data.clients.indexOf(item.id) === -1
-      })
+    project () {
+      return this.getProject(this.$route.params.id)
     },
     drawer: {
       get () {
@@ -171,15 +202,14 @@ export default {
       set (value) {
         this.$store.commit('drawer', value)
       }
-    },
-    title () {
-      return this.company ? this.company.data.name + ' - Clients' : 'Clients'
     }
   },
   watch: {
   },
   mounted () {
-    this.$store.dispatch('company/find')
+    this.$store.dispatch('projects/get', this.$route.params.id)
+    this.$store.dispatch('tools/find')
+    this.$store.dispatch('projects-tools/find', { query: { projectId: this.$route.params.id } })
   }
 }
 </script>

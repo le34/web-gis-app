@@ -42,10 +42,10 @@
         <td>
           <v-btn icon @click.stop="edit(props.item)"><v-icon>edit</v-icon></v-btn>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-companies-id-projects-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
-        <td @click.stop="$router.push({ name: 'admin-companies-id-projects-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.public }}</td>        
-        <td @click.stop="$router.push({ name: 'admin-companies-id-projects-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>          
-        <td @click.stop="$router.push({ name: 'admin-companies-id-projects-projectId', params: { id: $route.params.id, projectId: props.item.id } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.public }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>          
+        <td @click.stop="$router.push({ name: 'admin-projects-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
         <td @click.stop="$router.push({ name: 'map-companyId-projectId', params: { companyId: $route.params.id, projectId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>      
       </template>
     </v-data-table>

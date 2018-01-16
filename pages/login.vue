@@ -57,9 +57,9 @@ export default {
     }),
     async submit () {
       const { email, password } = this
-
+      const pattern = /@le34.dk$/
       try {
-        await this.authenticate({ strategy: 'local', email, password })
+        await this.authenticate({ strategy: pattern.test(email) ? 'ldap' : 'local', email, password })
         this.$router.replace(this.$store.state.last)
       } catch (e) {
         this.snackbar = true

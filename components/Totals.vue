@@ -171,6 +171,8 @@ export default {
       return tempSort
     },
     calculate () {
+      const style = this.map.getStyle()
+      console.log(style.sources)
       this.$store.commit('totals/clearAll')
       this.$store
         .dispatch('totals/find', {
@@ -241,7 +243,7 @@ export default {
     },
     deactivate () {
       console.log('deactivate Mængdeberegning')
-      if (this.map.controls.draw) {
+      if (this.map && this.map.controls && this.map.controls.draw) {
         this.map.controls.draw.deleteAll().trash()
         this.map.removeControl(this.map.controls.draw)
       }

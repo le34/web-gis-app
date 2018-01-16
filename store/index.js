@@ -5,18 +5,25 @@ import feathersClient from '~/plugins/feathers-client'
 const { service, auth } = feathersVuex(feathersClient, { idField: 'id' })
 
 export const plugins = [
-  service('/users'),
-  service('/roles'),
-  service('/companies'),
-  service('/cvr'),
-  service('/files'),
-  service('/datasources'),
-  service('/projects'),
-  service('/clients'),
-  service('/totals'),
-  service('/db'),
-  service('/extent'),
-  service('/authManagement'),
+  service('users'),
+  service('roles'),
+  service('companies'),
+  service('cvr'),
+  service('files'),
+  service('datasources'),
+  service('datasourcetypes'),
+  service('styles'),
+  service('projects'),
+  service('layers'),
+  service('clients'),
+  service('totals'),
+  service('tiles'),
+  service('tools'),
+  service('logos'),
+  service('projects-tools'),
+  service('db'),
+  service('extent'),
+  service('authManagement'),
   auth({
     userService: 'users'
   })

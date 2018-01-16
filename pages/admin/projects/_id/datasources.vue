@@ -23,7 +23,7 @@
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
-      <v-btn icon :to="{ name: 'admin-companies-id-project', params: { id: $route.params.id } }">
+      <v-btn icon :to="{ name: 'admin-projects-id', params: { id: $route.params.id } }">
         <v-icon>chevron_left</v-icon>
       </v-btn>
       <v-toolbar-title>{{title}}</v-toolbar-title>
@@ -34,18 +34,17 @@
       <v-text-field autofocus v-if="!$vuetify.breakpoint.xsOnly" dark append-icon="search" label="Search" single-line hide-details v-model="search"></v-text-field>
       <v-text-field ref="searchfield" prepend-icon="close" :prepend-icon-cb="() => (showSearch = !showSearch)" v-if="$vuetify.breakpoint.xsOnly && showSearch" slot="extension" dark append-icon="search" label="Søg" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
-    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="data" :search="search" hide-actions>
+    <v-data-table v-model="selected" selected-key="id" select-all :headers="headers" :items="datasources" :search="search" hide-actions :custom-filter="customSearch">
       <template slot="items" scope="props">
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td class="text-xs-left select">{{ props.item.priority }}</td>
-        <td @click.stop="$router.push({ name: 'admin-companies-id-project-projectId-dataId', params: { id: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select">{{ props.item.createdAt }}</td>
-        <td class="text-xs-left select">{{ props.item.sourceType }}</td>    
-        <td class="text-xs-left select">{{ props.item.name }}</td>        
-        <td class="text-xs-left select">{{ props.item.company }}</td>        
-        <td class="text-xs-left select">{{ props.item.progress }} %</td>        
-        <td @click.stop="$router.push({ name: 'map-companyId-projectId-dataId', params: { companyId: $route.params.id, projectId: $route.params.projectId, dataId: props.item.id } })" class="text-xs-left select"><v-icon>pageview</v-icon></td>
+        <td @click.stop="$router.push({ name: 'admin-datasources-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>
+        <td @click.stop="$router.push({ name: 'admin-datasources-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item['datasourcetype.name'] }}</td>    
+        <td @click.stop="$router.push({ name: 'admin-datasources-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-companies-id', params: { id: props.item.companyId } })" class="text-xs-left select">{{ props.item['company.name'] }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-datasources-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.progress }} %</td>        
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.userId } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -55,13 +54,13 @@
             <div class="headline">Create new datasource</div>
           </v-card-title>
           <v-card-text>
-            <v-select v-model="datasourceType" item-text="name" item-value="id" :items="datasourceTypes" label="Select datasource type"></v-select>
+            <v-select v-model="datasourceType" item-text="name" :items="datasourcetypes" label="Select datasource type"></v-select>
             <v-text-field :rules="fileRules" required label="Name" v-model="name"></v-text-field>
-            <v-text-field v-if="datasourceType<2" :rules="fileRules" readonly :label="label" hint="Choose file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
-            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Database Connectionstring" hint="postgres://username:password@server:5432/database" v-model="connectionString"></v-text-field>
-            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Table/View" v-model="dbTable"></v-text-field>
-            <v-text-field v-if="datasourceType===2" :rules="fileRules" required label="Geometry Column" v-model="geometryColumn"></v-text-field>
-            <v-checkbox v-if="datasourceType===2" label="Create Tiles" v-model="tile"></v-checkbox>
+            <v-text-field v-if="datasourceType && datasourceType.id<3" :rules="fileRules" readonly :label="datasourceType.name" hint="Choose file" v-model="filename" append-icon="attach_file" :append-icon-cb="fileselect" :suffix="filesize"></v-text-field>
+            <v-text-field v-if="datasourceType && datasourceType.id===3" :rules="fileRules" required label="Database Connectionstring" hint="postgres://username:password@server:5432/database" v-model="connectionString"></v-text-field>
+            <v-text-field v-if="datasourceType && datasourceType.id===3" :rules="fileRules" required label="Table/View" v-model="dbTable"></v-text-field>
+            <v-text-field v-if="datasourceType && datasourceType.id===3" :rules="fileRules" required label="Geometry Column" v-model="geometryColumn"></v-text-field>
+            <v-checkbox v-if="datasourceType && datasourceType.id===3" label="Create Tiles" v-model="tile"></v-checkbox>
           </v-card-text>
           <v-progress-linear v-model="percentCompleted"></v-progress-linear>
           <v-card-actions>
@@ -75,13 +74,13 @@
     <v-dialog v-model="dialogDelete" persistent max-width="500">
       <v-card>
         <v-card-title>
-          <div class="headline">Delete Data</div>
+          <div class="headline">Delete</div>
         </v-card-title>
-        <v-card-text>Delete selected data?</v-card-text>
+        <v-card-text>Delete selected datasources?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="primary" flat="flat" @click.native="dialogDelete = false">Cancel</v-btn>
-          <v-btn color="primary" flat="flat" @click.native="deleteData()">Delete</v-btn>
+          <v-btn color="primary" flat="flat" @click.native="deleteDatasource()">Delete</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -129,29 +128,22 @@ export default {
       search: '',
       selected: [],
       percentCompleted: 0,
-      datasourceTypes: [{id: 0, name: 'Vector'}, {id: 1, name: 'Raster'}, {id: 2, name: 'Database'}],
       datasourceType: 0,
       connectionString: null,
       geometryColumn: null,
       dbTable: null,
       headers: [
         {
-          text: 'Priority',
+          text: 'Updated At',
           align: 'left',
           sortable: true,
-          value: 'priority'
+          value: 'updatedAt'
         },
         {
-          text: 'Date',
+          text: 'Type',
           align: 'left',
           sortable: true,
-          value: 'createdAt'
-        },
-        {
-          text: 'Source Type',
-          align: 'left',
-          sortable: true,
-          value: 'sourceType'
+          value: 'datasourcetype.name'
         },
         {
           text: 'Name',
@@ -172,14 +164,26 @@ export default {
           value: 'progress'
         },
         {
-          text: 'Show',
+          text: 'Updated By',
           align: 'left',
-          sortable: false
+          sortable: true,
+          value: 'user.email'
         }
       ]
     }
   },
+  filters: {
+    date (value) {
+      return (new Date(value)).toLocaleString()
+    }
+  },
   methods: {
+    customSearch (items, search, filter, headers) {
+      search = search.toString().toLowerCase()
+      if (search.trim() === '') return items
+      const props = headers.map(h => h.value)
+      return items.filter(item => props.some(prop => filter(item[prop], search)))
+    },
     onUploadProgress (progressEvent) {
       this.percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
     },
@@ -235,13 +239,12 @@ export default {
           input.dispatchEvent(evt)
         })
       }
-      console.log(this.datasourceType)
-      fileDialog({ accept: this.datasourceType === 0 ? '.geojson' : '.mbtiles' }).then(file => {
+      fileDialog({ accept: this.datasourceType.id === 1 ? '.geojson' : '.mbtiles' }).then(file => {
         this.file = file[0]
         this.filename = file[0].name
         this.filesize = formatsize(file[0].size)
         this.name = this.filename.substring(0, this.filename.length - 8)
-        if (this.datasourceType === 0) {
+        if (this.datasourceType.id === 1) {
           const fr = new FileReader()
           fr.onload = () => {
             this.geojson = JSON.parse(fr.result)
@@ -255,39 +258,37 @@ export default {
         this.$refs.searchfield.$el.getElementsByTagName('input')[0].focus()
       )
     },
-    deleteData () {
-      this.dialogDelete = true
+    deleteDatasource () {
+      var promises = []
       this.selected.forEach(item => {
-        this.$store.dispatch('data/remove', item.id).then(res => {
-          this.dialogDelete = false
-        }).catch(err => {
-          console.log(err)
-        })
+        promises.push(this.$store.dispatch('datasources/remove', item.id))
+      })
+      Promise.all(promises).then(res => {
+        this.dialogDelete = false
+      }).catch(err => {
+        console.log(err)
       })
     },
     save () {
       if (this.valid) {
         let options = {
           companyId: this.$store.state.auth.user.companyId,
-          projectId: this.$route.params.projectId,
+          projectId: this.$route.params.id,
           name: this.name,
-          meta: {
-            source: this.datasourceType
-          },
-          userId: this.$store.state.auth.user.id
+          datasourcetypeId: this.datasourceType.id
         }
-        if (this.datasourceType === 0) {
-          options.geojson = this.geojson
-        } else if (this.datasourceType === 1) {
-
-        } else if (this.datasourceType === 2) {
-          options.meta.connectionString = this.connectionString
-          options.meta.geometryColumn = this.geometryColumn
-          options.meta.dbTable = this.dbTable
-          options.meta.tile = this.tile
+        switch (this.datasourceType.id) {
+          case 1: options.geojson = this.geojson
+            break
+          case 2: break
+          case 3: options.data.connectionString = this.connectionString
+            options.data.geometryColumn = this.geometryColumn
+            options.data.dbTable = this.dbTable
+            options.data.tile = this.tile
+            break
         }
-        this.$store.dispatch('data/create', options).then(res => {
-          if (this.datasourceType === 1) {
+        this.$store.dispatch('datasources/create', options).then(res => {
+          if (this.datasourceType.id === 2) {
             var formData = new FormData()
             formData.append('id', res.id)
             formData.append('mbtile', this.file)
@@ -305,7 +306,7 @@ export default {
           this.geojson = null
           this.file = null
           this.filesize = null
-          this.datasourceType = 0
+          this.datasourceType = null
           this.connectionString = null
           this.geometryColumn = null
           this.dbTable = null
@@ -319,39 +320,25 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('companies', {
-      getCompany: 'get'
-    }),
     ...mapGetters('datasources', {
-      dataRaw: 'list'
+      datasourcesRaw: 'list'
+    }),
+    ...mapGetters('datasourcetypes', {
+      datasourcetypes: 'list'
     }),
     ...mapGetters('projects', {
       getProject: 'get'
     }),
-    label () {
-      return this.datasourceType ? this.datasourceTypes[this.datasourceType].name : this.datasourceTypes[0].name
-    },
-    dataFilter () {
-      return this.dataRaw.filter(item => {
-        return item.projectId === this.$route.params.projectId
+    datasources () {
+      return this.datasourcesRaw.filter(item => {
+        return item.projectId === this.$route.params.id
       })
-    },
-    data () {
-      return this.dataFilter.map(item => {
-        let temp = { ...item }
-        temp.company = item['company.data'].name
-        temp.sourceType = item.meta && item.meta.source ? this.datasourceTypes[item.meta.source].name : this.datasourceTypes[0].name
-        return temp
-      })
-    },
-    company () {
-      return this.getCompany(this.$route.params.id)
     },
     project () {
-      return this.getProject(this.$route.params.projectId)
+      return this.getProject(this.$route.params.id)
     },
     title () {
-      return `${this.company ? this.company.name : ''} - ${this.project ? this.project.name : ''}`
+      return `${this.project ? this.project.name : ''} - Datasources`
     },
     drawer: {
       get () {
@@ -364,14 +351,13 @@ export default {
   },
   watch: {},
   mounted () {
-    this.$store.dispatch('companies/get', this.$route.params.id)
-    this.$store.dispatch('data/find', {
+    this.$store.dispatch('datasources/find', {
       query: {
-        // $select: ['id', 'projectId', 'name', 'meta', 'style', 'company.data', 'createdAt', 'progress'],
-        projectId: this.$route.params.projectId
+        projectId: this.$route.params.id
       }
     })
-    this.$store.dispatch('projects/get', this.$route.params.projectId)
+    this.$store.dispatch('projects/get', this.$route.params.id)
+    this.$store.dispatch('datasourcetypes/find')
   }
 }
 </script>

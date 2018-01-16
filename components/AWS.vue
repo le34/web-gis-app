@@ -1,11 +1,11 @@
 <template>
 
   <v-card :color="$vuetify.dark?'blue-grey':'blue-grey lighten-4'" style="width:300px">
-    <v-toolbar card dark color="accent">
+    <v-toolbar dense card dark color="accent" class="px-1">
       <v-text-field ref="awsInput" spellcheck="false" autofocus append-icon="search" label="Søg adresse" single-line hide-details v-model="search"></v-text-field>
     </v-toolbar>
     
-      <v-list dense light v-scroll="{ target: '#scroll-target', callback: this.onScroll }" id="scroll-target" ref="awslist" class="pa-0 aws-list">            
+      <v-list dense light v-scroll:#scroll-target="onScroll" id="scroll-target" ref="awslist" class="pa-0 aws-list">            
         <template v-for="(item, index) in items">
           <v-list-tile :key="index" class="legend" @click="click(item)">
               <v-list-tile-content>
@@ -14,7 +14,7 @@
                 </v-list-tile-title>
               </v-list-tile-content>                
           </v-list-tile>
-          <v-divider :key="index" v-if="index<items.length-1"></v-divider>
+          <v-divider :key="`d${index}`" v-if="index<items.length-1"></v-divider>
         </template>            
       </v-list>
   
@@ -82,16 +82,15 @@ export default {
       console.log('deactivate aws')
     },
     onScroll (e) {
-      // console.log(e.target.scrollHeight)
-      // console.log(e.target.clientHeight)
-      // console.log(e.target.scrollTop)
       let h = e.target.scrollHeight - e.target.clientHeight
-      console.log(this.page, h, e.target.scrollTop, h - e.target.scrollTop)
+      // console.log(this.page, h, e.target.scrollTop, h - e.target.scrollTop)
       if (!this.loading && (h - e.target.scrollTop < 100)) {
+        /*
         console.log('load', this.page, e)
         console.log(e.target.scrollHeight)
         console.log(e.target.clientHeight)
         console.log(e.target.scrollTop)
+        */
         this.page++
         this.loading = true
         this.$axios.get(`https://dawa.aws.dk/${this.type}/autocomplete?side=${this.page}&per_side=50&q=${this.searchstring}*`).then((res) => {

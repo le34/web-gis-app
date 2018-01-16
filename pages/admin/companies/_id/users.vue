@@ -40,8 +40,8 @@
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
         <td @click.stop="$router.push({name: 'admin-users-id', params: {id: props.item.id}})" class="text-xs-left select">{{ props.item.email }}</td>
-        <td class="text-xs-left select">{{ props.item.role }}</td>
-        <td @click.stop="editCompany(props.item)" class="text-xs-left select">{{ props.item['company.data'].name }}</td>
+        <td class="text-xs-left select">{{ props.item['role.name'] }}</td>
+        <td @click.stop="editCompany(props.item)" class="text-xs-left select">{{ props.item['company.name'] }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -169,7 +169,7 @@ export default {
       return this.getCompany(this.$route.params.id)
     },
     title () {
-      return this.company ? this.company.data.name + ' - Users' : 'Users'
+      return this.company ? this.company.name + ' - Users' : 'Users'
     },
     drawer: {
       get () {
@@ -189,7 +189,7 @@ export default {
   },
   mounted () {
     this.$store.dispatch('users/find', { query: { companyId: this.$route.params.id } })
-    this.$store.dispatch('companies/find', { query: { id: this.$route.params.id } })
+    this.$store.dispatch('companies/get', this.$route.params.id)
     this.$store.dispatch('roles/find')
   }
 }

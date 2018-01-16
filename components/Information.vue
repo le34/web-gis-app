@@ -4,7 +4,7 @@
     <v-dialog max-width="500px" scrollable v-model="dialog" :fullscreen="$vuetify.breakpoint.xsOnly" lazy>
       <v-card color="blue-grey lighten-4">
         <v-toolbar card dark color="accent">
-          <v-toolbar-title>{{feature ? feature.name : ''}}</v-toolbar-title>
+          <v-toolbar-title>{{name}}</v-toolbar-title>
           <v-spacer/>
           <v-btn dark flat icon @click.native="dialog = false">
             <v-icon>close</v-icon>
@@ -134,6 +134,7 @@ export default {
     feature () {
       if (this.pagination !== undefined && this.features.length > 0) {
         let item = this.features[this.pagination - 1]
+        /*
         const group = this.layers.find(group => {
           return group.id === item.layer.source
         })
@@ -145,8 +146,18 @@ export default {
             item.name = layer.name
           }
         }
+        */
         return item
       }
+    },
+    name () {
+      if (this.feature) {
+        if (this.feature.layer.metadata && this.feature.layer.metadata.name) {
+          return this.feature.layer.metadata.name
+        }
+        return this.feature.layer.id
+      }
+      return ''
     },
     items: function () {
       let items = []

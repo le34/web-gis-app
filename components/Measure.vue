@@ -143,7 +143,7 @@ export default {
     deactivate () {
       console.log('deactivate measure')
 
-      if (this.map.controls.draw) {
+      if (this.map && this.map.controls && this.map.controls.draw) {
         this.map.off('draw.render', this.calculate)
         this.map.removeLayer('measure')
         this.map.removeSource('measure')

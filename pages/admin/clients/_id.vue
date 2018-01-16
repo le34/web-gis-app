@@ -6,6 +6,7 @@
       <v-toolbar-title>{{title}}</v-toolbar-title>
     </v-toolbar>
     <v-container fluid>
+      {{client}}
       <v-card>
         <v-card-title primary-title class="title">
           Project
@@ -19,32 +20,14 @@
           <v-layout row wrap>
             <v-flex>
               <v-btn flat :to="{ name: 'admin-projects-id-clients', params: { id: $route.params.id } }">
+                <v-icon left>person</v-icon>
                   Clients
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-datasources', params: { id: $route.params.id } }">
-                  Datasources
-              </v-btn>
-            </v-flex>
-            <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-styles', params: { id: $route.params.id } }">
+              <v-btn flat :to="{ name: 'admin-companies-id-projects', params: { id: $route.params.id } }">
+                <v-icon left>assignment</v-icon>
                   Styles
-              </v-btn>
-            </v-flex>
-            <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-layers', params: { id: $route.params.id } }">
-                  Layers
-              </v-btn>
-            </v-flex>
-            <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-tools', params: { id: $route.params.id } }">
-                  Tools
-              </v-btn>
-            </v-flex>
-            <v-flex>
-              <v-btn flat :to="{ name: 'map-id', params: { id: $route.params.id } }">
-                  Map
               </v-btn>
             </v-flex>
           </v-layout>
@@ -93,40 +76,13 @@ export default {
   },
   computed: {
     title () {
-      return this.project ? this.project.name : 'Project'
+      return this.client ? this.client.id : 'Client'
     },
-    ...mapGetters('projects', {
-      getProject: 'get'
+    ...mapGetters('clients', {
+      getClient: 'get'
     }),
-    ...mapGetters('companies', {
-      companies: 'list'
-    }),
-    project () {
-      return this.getProject(this.$route.params.id)
-    },
-    name: {
-      get () {
-        return this.project ? this.project.name : null
-      },
-      set (e) {
-        this.$store.dispatch('projects/patch', [this.project.id, { name: e }])
-      }
-    },
-    isPublic: {
-      get () {
-        return this.project ? this.project.public : null
-      },
-      set (e) {
-        this.$store.dispatch('projects/patch', [this.project.id, { public: e }])
-      }
-    },
-    companyId: {
-      get () {
-        return this.project ? this.project.companyId : null
-      },
-      set (e) {
-        this.$store.dispatch('projects/patch', [this.project.id, { companyId: e }])
-      }
+    client () {
+      return this.getClient(this.$route.params.id)
     },
     drawer: {
       get () {
@@ -138,8 +94,7 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('projects/get', this.$route.params.id)
-    this.$store.dispatch('companies/find')
+    this.$store.dispatch('clients/get', this.$route.params.id)
   }
 }
 </script>
