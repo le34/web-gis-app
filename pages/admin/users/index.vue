@@ -1,25 +1,23 @@
 <template>
   <v-content>
-    <v-fab-transition>
-      <v-speed-dial hover bottom fixed right v-model="fab" v-show="!dialog">
-        <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
-          <v-icon>more_vert</v-icon>
-          <v-icon>close</v-icon>
+    <v-speed-dial open-on-hover bottom fixed right v-model="fab" v-show="!dialog">
+      <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
+        <v-icon>more_vert</v-icon>
+        <v-icon>close</v-icon>
+      </v-btn>
+      <v-tooltip left>
+        <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
+          <v-icon>add</v-icon>
         </v-btn>
-        <v-tooltip left>
-          <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
-            <v-icon>add</v-icon>
-          </v-btn>
-          <span>Create</span>
-        </v-tooltip>
-        <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDeleteUsers = true">
-            <v-icon>delete</v-icon>
-          </v-btn>
-          <span>Delete</span>
-        </v-tooltip>
-      </v-speed-dial>
-    </v-fab-transition>
+        <span>Create</span>
+      </v-tooltip>
+      <v-tooltip left>
+        <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDeleteUsers = true">
+          <v-icon>delete</v-icon>
+        </v-btn>
+        <span>Delete</span>
+      </v-tooltip>
+    </v-speed-dial>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
@@ -36,9 +34,11 @@
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({name: 'admin-users-id', params: {id: props.item.id}})" class="text-xs-left select">{{ props.item.email }}</td>
-        <td class="text-xs-left">{{ props.item.role }}</td>
-        <td class="text-xs-left">{{ props.item['company.name'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.email }}</td>
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item['role.name'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-companies-id', params: { id: props.item.companyId } })" class="text-xs-left select">{{ props.item['company.name'] }}</td>
+        <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" persistent max-width="500">
@@ -49,7 +49,8 @@
           </v-card-title>
           <v-card-text>
             <v-text-field ref="email" :rules="emailRules" required v-model="email" name="email" label="Email" id="email"></v-text-field>
-            <v-select :rules="roleRules" required item-text="role" item-value="role" :items="roles" v-model="role" label="Role"></v-select>
+            <v-text-field v-model="name" name="name" label="Name" id="name"></v-text-field>
+            <v-select :rules="roleRules" required item-text="name" item-value="id" :items="roles" v-model="roleId" label="Role"></v-select>
             <v-select :rules="companyRules" required item-text="name" item-value="id" :items="companies" v-model="companyId" label="Company"></v-select>
           </v-card-text>
           <v-card-actions>
@@ -89,8 +90,9 @@ export default {
       valid: false,
       fab: false,
       showSearch: false,
-      role: null,
+      roleId: null,
       email: null,
+      name: null,
       companyId: null,
       emailRules: [
         (v) => !!v || 'Email is required',
@@ -110,6 +112,12 @@ export default {
           value: 'email'
         },
         {
+          text: 'Name',
+          align: 'left',
+          sortable: true,
+          value: 'name'
+        },
+        {
           text: 'Role',
           align: 'left',
           sortable: true,
@@ -120,8 +128,19 @@ export default {
           align: 'left',
           sortable: true,
           value: 'company'
+        },
+        {
+          text: 'Updated At',
+          align: 'left',
+          sortable: true,
+          value: 'updatedAt'
         }
       ]
+    }
+  },
+  filters: {
+    date (value) {
+      return (new Date(value)).toLocaleString()
     }
   },
   methods: {
@@ -144,9 +163,10 @@ export default {
     },
     save () {
       if (this.valid) {
-        this.$store.dispatch('users/create', { email: this.email, role: this.role, companyId: this.companyId }).then((res) => {
+        this.$store.dispatch('users/create', { email: this.email, name: this.name, role: this.role, companyId: this.companyId }).then((res) => {
           this.email = null
-          this.role = null
+          this.name = null
+          this.roleId = null
           this.companyId = null
           this.dialog = false
           this.$refs.form.reset()

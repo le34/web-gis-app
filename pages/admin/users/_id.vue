@@ -12,6 +12,7 @@
         </v-card-title>
         <v-card-text>
           <v-text-field v-model="email" required name="email" label="Email" id="email"></v-text-field>
+          <v-text-field v-model="name" name="name" label="Name" id="name"></v-text-field>
           <v-select required item-text="name" item-value="id" :items="companies" v-model="companyId" label="Company"></v-select>
           <v-select required item-text="name" item-value="id" :items="roles" v-model="roleId" label="Role"></v-select>
         </v-card-text>
@@ -83,6 +84,17 @@ export default {
         this.$store.dispatch('users/patch', [
           this.$route.params.id,
           { email: e }
+        ])
+      }
+    },
+    name: {
+      get () {
+        return this.user ? this.user.name : null
+      },
+      set (e) {
+        this.$store.dispatch('users/patch', [
+          this.$route.params.id,
+          { name: e }
         ])
       }
     },

@@ -1,17 +1,9 @@
 <template>
   <v-app :dark="dark">
     <v-navigation-drawer fixed app v-model="drawer">
-      <v-toolbar dense flat class="transparent">
-        <v-list class="pa-0">
-          <v-list-tile avatar @click.stop="drawer=false">
-            <v-list-tile-action>
-              <v-icon>close</v-icon>
-            </v-list-tile-action>
-            <v-list-tile-content>
-              <v-list-tile-title>Settings</v-list-tile-title>
-            </v-list-tile-content>
-          </v-list-tile>
-        </v-list>
+      <v-toolbar dense flat @click.stop="drawer=false">
+        <v-btn icon><v-icon>close</v-icon></v-btn>
+        <v-toolbar-title>Settings</v-toolbar-title>        
       </v-toolbar>
       <v-expansion-panel expand focusable>
         <v-expansion-panel-content>
@@ -38,8 +30,8 @@
                       <v-list-tile-title>{{basemap.updatedAt | date}}</v-list-tile-title>
                       <v-list-tile-title>{{basemap['user.email']}}</v-list-tile-title>
                     </v-flex>
-                    <v-btn icon flat @click.stop="zoom(basemap)">
-                    <v-icon>zoom_out_map</v-icon>
+                    <v-btn icon flat @click.stop="zoom(basemap)" v-show="basemap.style">
+                      <v-icon>zoom_out_map</v-icon>
                     </v-btn>
                   </v-layout>
                 </v-card-text>
@@ -69,6 +61,20 @@
               <div slot="header">
                   <v-switch hide-details :inputValue="layer.active" @click.stop="toggleLayer(layer)" :label="layer.name"></v-switch>
               </div>
+              <v-card color="accent" dark >
+                <v-card-text class="pa-2">
+                  <v-layout align-center>
+                    <v-flex>                  
+                      <v-list-tile-title>{{layer.name}}</v-list-tile-title>
+                      <v-list-tile-title>{{layer.updatedAt | date}}</v-list-tile-title>
+                      <v-list-tile-title>{{layer['user.email']}}</v-list-tile-title>
+                    </v-flex>
+                    <v-btn icon flat @click.stop="zoom(layer)" v-show="layer.style">
+                      <v-icon>zoom_out_map</v-icon>
+                    </v-btn>
+                  </v-layout>
+                </v-card-text>
+              </v-card>
               <v-list dense>
                 <v-list-tile v-for="item in layer.style ? layer.style[dark ? 'dark' : 'light'].layers:[]" v-bind:key="item.id">              
                   <v-list-tile-content>
@@ -191,6 +197,7 @@ export default {
                   let source = mapstyle.sources[key]
                   if (source.type === 'raster') {
                   // Hent højopløsning raster tiles hvis skærm har høj opløsning
+                    console.log('devicePixeRatio', window.devicePixelRatio)
                     if (window.devicePixelRatio > 1.5) {
                       source.tileSize = source.tileSize / 2
                     }
@@ -248,6 +255,7 @@ export default {
             let source = _layer.style.dark.sources[key]
             if (source.type === 'raster') {
               // Hent højopløsning raster tiles hvis skærm har høj opløsning
+              console.log('devicePixeRatio', window.devicePixelRatio)
               if (window.devicePixelRatio > 1.5) {
                 source.tileSize = source.tileSize / 2
               }
@@ -294,14 +302,15 @@ export default {
       this.editLayer(_layer)
     },
     zoom (layer) {
-      let style = layer.style.isBasemap ? layer.style[layer.isDark ? 'dark' : 'light'] : layer.style[this.dark ? 'dark' : 'light']
-      Object.keys(style.sources).forEach(key => {
-        const source = style.sources[key]
-        console.log(source)
-        let { center, zoom } = source
-        console.log(center, zoom)
-        this.map.easeTo({center, zoom})
-      })
+      let style = layer.isBasemap ? layer.style[layer.isDark ? 'dark' : 'light'] : layer.style[this.dark ? 'dark' : 'light']
+      if (layer.isBasemap) {
+        this.map.easeTo({center: style.center, zoom: style.zoom})
+      } else {
+        Object.keys(style.sources).forEach(key => {
+          const source = style.sources[key]
+          this.map.fitBounds(source.bounds)
+        })
+      }
     },
     collapse (value, item) {
       let layer = { ...item }

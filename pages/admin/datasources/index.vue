@@ -122,7 +122,6 @@ export default {
       return items.filter(item => props.some(prop => filter(item[prop], search)))
     },
     deleteDatasources () {
-      this.dialogDelete = true
       var promises = []
       this.selected.forEach(item => {
         promises.push(this.$store.dispatch('datasources/remove', item.id))

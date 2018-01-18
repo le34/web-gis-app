@@ -1,25 +1,23 @@
 <template>
   <v-content>
-    <v-fab-transition>
-      <v-speed-dial hover bottom fixed right v-model="fab">
-        <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
-          <v-icon>more_vert</v-icon>
-          <v-icon>close</v-icon>
+    <v-speed-dial open-on-hover bottom fixed right v-model="fab">
+      <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
+        <v-icon>more_vert</v-icon>
+        <v-icon>close</v-icon>
+      </v-btn>
+      <v-tooltip left>
+        <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
+          <v-icon>add</v-icon>
         </v-btn>
-        <v-tooltip left>
-          <v-btn fab dark small color="green" slot="activator" @click.stop="create()">
-            <v-icon>add</v-icon>
-          </v-btn>
-          <span>Create</span>
-        </v-tooltip>
-        <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
-            <v-icon>delete</v-icon>
-          </v-btn>
-          <span>Delete</span>
-        </v-tooltip>
-      </v-speed-dial>
-    </v-fab-transition>
+        <span>Create</span>
+      </v-tooltip>
+      <v-tooltip left>
+        <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
+          <v-icon>delete</v-icon>
+        </v-btn>
+        <span>Delete</span>
+      </v-tooltip>
+    </v-speed-dial>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
@@ -164,9 +162,6 @@ export default {
     ...mapGetters('styles', {
       findStyles: 'find'
     }),
-    ...mapGetters('datasources', {
-      findDatasources: 'find'
-    }),
     ...mapGetters('projects', {
       getProject: 'get'
     }),
@@ -178,13 +173,6 @@ export default {
     },
     styles () {
       return this.findStyles({
-        query: {
-          projectId: this.$route.params.id
-        }
-      }).data
-    },
-    datasources () {
-      return this.findDatasources({
         query: {
           projectId: this.$route.params.id
         }
@@ -202,11 +190,6 @@ export default {
   watch: {},
   mounted () {
     this.$store.dispatch('styles/find', {
-      query: {
-        projectId: this.$route.params.id
-      }
-    })
-    this.$store.dispatch('datasources/find', {
       query: {
         projectId: this.$route.params.id
       }

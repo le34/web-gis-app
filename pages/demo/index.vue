@@ -26,7 +26,7 @@
         </v-layout>
       </v-container>
     </v-content>
-    <v-footer app dark class="white--text">
+    <v-footer app height="150" dark class="white--text">
       <v-layout row wrap>
         <v-flex class="pa-3">
           <strong>LE34</strong><br/> Energivej 34<br/> 2750 Ballerup<br/> Denmark

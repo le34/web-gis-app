@@ -22,6 +22,7 @@
           <v-btn flat @click.stop="create()">
               Create Style
           </v-btn>
+          <v-btn flat nuxt :to="{ name: 'admin-datasources-id-styles', params: { id: $route.params.id } }">Styles</v-btn>
           <v-spacer/>
           <v-btn flat color="primary" @click.stop="dialogRemove=true">Delete</v-btn>
         </v-card-actions>
@@ -95,7 +96,7 @@ export default {
       if (this.valid) {
         Promise.resolve().then(() => {
           let style = {
-            name: this.name,
+            name: this.stylename,
             projectId: this.datasource.projectId,
             dark: {
               version: 8,
@@ -274,6 +275,7 @@ export default {
           }
         }).then(style => {
           console.log(style)
+          style.datasourceId = this.$route.params.id
           return this.$store.dispatch('styles/create', style)
         }).then(res => {
           this.$router.push({ name: 'admin-styles-id', params: { id: res.id } })

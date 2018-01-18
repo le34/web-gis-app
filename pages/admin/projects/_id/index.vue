@@ -18,32 +18,32 @@
         <v-card-actions>
           <v-layout row wrap>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-clients', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'admin-projects-id-clients', params: { id: $route.params.id } }">
                   Clients
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-datasources', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'admin-projects-id-datasources', params: { id: $route.params.id } }">
                   Datasources
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-styles', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'admin-projects-id-styles', params: { id: $route.params.id } }">
                   Styles
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-layers', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'admin-projects-id-layers', params: { id: $route.params.id } }">
                   Layers
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'admin-projects-id-tools', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'admin-projects-id-tools', params: { id: $route.params.id } }">
                   Tools
               </v-btn>
             </v-flex>
             <v-flex>
-              <v-btn flat :to="{ name: 'map-id', params: { id: $route.params.id } }">
+              <v-btn flat nuxt :to="{ name: 'map-id', params: { id: $route.params.id } }">
                   Map
               </v-btn>
             </v-flex>

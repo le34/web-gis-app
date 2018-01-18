@@ -1,25 +1,23 @@
 <template>
   <v-content>
-    <v-fab-transition>
-      <v-speed-dial hover bottom fixed right v-model="fab" v-show="!dialog">
-        <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
-          <v-icon>more_vert</v-icon>
-          <v-icon>close</v-icon>
+    <v-speed-dial open-on-hover bottom fixed right v-model="fab" v-show="!dialog">
+      <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
+        <v-icon>more_vert</v-icon>
+        <v-icon>close</v-icon>
+      </v-btn>
+      <v-tooltip left>
+        <v-btn fab dark small color="green" slot="activator" @click.stop="dialog = true">
+          <v-icon>add</v-icon>
         </v-btn>
-        <v-tooltip left>
-          <v-btn fab dark small color="green" slot="activator" @click.stop="dialog = true">
-            <v-icon>add</v-icon>
-          </v-btn>
-          <span>Create</span>
-        </v-tooltip>
-        <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
-            <v-icon>delete</v-icon>
-          </v-btn>
-          <span>Delete</span>
-        </v-tooltip>
-      </v-speed-dial>
-    </v-fab-transition>
+        <span>Create</span>
+      </v-tooltip>
+      <v-tooltip left>
+        <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
+          <v-icon>delete</v-icon>
+        </v-btn>
+        <span>Delete</span>
+      </v-tooltip>
+    </v-speed-dial>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
@@ -88,6 +86,7 @@
 </template>
 <script>
 import { mapGetters } from 'vuex'
+import { v4 } from 'uuid'
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 const STEP = 1024
 
@@ -271,35 +270,35 @@ export default {
     },
     save () {
       if (this.valid) {
-        let options = {
-          companyId: this.$store.state.auth.user.companyId,
-          projectId: this.$route.params.id,
-          name: this.name,
-          datasourcetypeId: this.datasourceType.id
-        }
-        switch (this.datasourceType.id) {
-          case 1: options.geojson = this.geojson
-            break
-          case 2: break
-          case 3: options.data.connectionString = this.connectionString
-            options.data.geometryColumn = this.geometryColumn
-            options.data.dbTable = this.dbTable
-            options.data.tile = this.tile
-            break
-        }
-        this.$store.dispatch('datasources/create', options).then(res => {
-          if (this.datasourceType.id === 2) {
-            var formData = new FormData()
-            formData.append('id', res.id)
-            formData.append('mbtile', this.file)
-            var config = {
-              onUploadProgress: this.onUploadProgress
-
-            }
-            const uri = process.env.FEATHERS
-            return this.$axios.post(uri + '/files', formData, config)
+        Promise.resolve().then(() => {
+          let options = {
+            id: v4(),
+            companyId: this.$store.state.auth.user.companyId,
+            projectId: this.$route.params.id,
+            name: this.name,
+            datasourcetypeId: this.datasourceType.id
           }
-          return null
+          switch (this.datasourceType.id) {
+            case 1: options.geojson = this.geojson
+              return options
+            case 2:
+              var formData = new FormData()
+              formData.append('id', options.id)
+              formData.append('mbtile', this.file)
+              var config = {
+                onUploadProgress: this.onUploadProgress
+              }
+              return this.$axios.post(process.env.FEATHERS + '/files', formData, config).then(() => {
+                return options
+              })
+            case 3: options.data.connectionString = this.connectionString
+              options.data.geometryColumn = this.geometryColumn
+              options.data.dbTable = this.dbTable
+              options.data.tile = this.tile
+              return options
+          }
+        }).then(options => {
+          return this.$store.dispatch('datasources/create', options)
         }).then(res => {
           this.$refs.form.reset()
           this.name = null
@@ -321,7 +320,7 @@ export default {
   },
   computed: {
     ...mapGetters('datasources', {
-      datasourcesRaw: 'list'
+      findDatasources: 'find'
     }),
     ...mapGetters('datasourcetypes', {
       datasourcetypes: 'list'
@@ -330,9 +329,11 @@ export default {
       getProject: 'get'
     }),
     datasources () {
-      return this.datasourcesRaw.filter(item => {
-        return item.projectId === this.$route.params.id
-      })
+      return this.findDatasources({
+        query: {
+          projectId: this.$route.params.id
+        }
+      }).data
     },
     project () {
       return this.getProject(this.$route.params.id)

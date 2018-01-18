@@ -1,19 +1,17 @@
 <template>
   <v-content>
-    <v-fab-transition>
-      <v-speed-dial hover bottom fixed right v-model="fab">
-        <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
-          <v-icon>more_vert</v-icon>
-          <v-icon>close</v-icon>
+    <v-speed-dial open-on-hover bottom fixed right v-model="fab">
+      <v-btn slot="activator" color="blue darken-2" dark fab hover v-model="fab">
+        <v-icon>more_vert</v-icon>
+        <v-icon>close</v-icon>
+      </v-btn>
+      <v-tooltip left>
+        <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
+          <v-icon>delete</v-icon>
         </v-btn>
-        <v-tooltip left>
-          <v-btn fab dark small color="red" slot="activator" @click.stop="dialogDelete = true">
-            <v-icon>delete</v-icon>
-          </v-btn>
-          <span>Delete</span>
-        </v-tooltip>
-      </v-speed-dial>
-    </v-fab-transition>
+        <span>Delete</span>
+      </v-tooltip>
+    </v-speed-dial>
     <v-toolbar app fixed prominent dark color="secondary">
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <img src="/icon.png" height="63" @click="$router.push('/')" style="cursor: pointer"/>
@@ -30,7 +28,8 @@
         <td>
           <v-checkbox primary hide-details v-model="props.selected"></v-checkbox>
         </td>
-        <td @click.stop="$router.push({ name: 'admin-styles-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>        
+        <td @click.stop="$router.push({ name: 'admin-styles-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.name }}</td>
+        <td @click.stop="$router.push({ name: 'admin-datasources-id', params: { id: props.item.datasourceId } })" class="text-xs-left select">{{ props.item['datasource.name'] }}</td>
         <td @click.stop="$router.push({ name: 'admin-styles-id', params: { id: props.item.id } })" class="text-xs-left select">{{ props.item.updatedAt | date }}</td>
         <td @click.stop="$router.push({ name: 'admin-users-id', params: { id: props.item.userId } })" class="text-xs-left select">{{ props.item['user.email'] }}</td>
       </template>
@@ -72,6 +71,12 @@ export default {
           align: 'left',
           sortable: true,
           value: 'name'
+        },
+        {
+          text: 'Datasource',
+          align: 'left',
+          sortable: true,
+          value: 'datasource.name'
         },
         {
           text: 'Updated At',
